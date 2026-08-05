@@ -54,6 +54,12 @@ export async function approveAction(actionId: string): Promise<ExecutionReceipt 
   });
   if (!["PROPOSED", "WAITING"].includes(action.status)) return null;
 
+  // Redirections execute structurally: they move the candidate into the
+  // matched role's pipeline rather than sending a message.
+  if (action.type === "REDIRECTION") {
+    return executeRedirect(action.id, user.name);
+  }
+
   const messageTypes = ["REMINDER", "ESCALATION", "FEEDBACK_REQUEST", "CANDIDATE_UPDATE", "OFFER_APPROVAL"];
   const isMessage = messageTypes.includes(action.type);
   const isCandidateFacing = action.type === "CANDIDATE_UPDATE";
@@ -174,6 +180,207 @@ export async function approveAction(actionId: string): Promise<ExecutionReceipt 
     resultingState,
     nextAction: nextActionText,
     escalation: action.escalationNote,
+  };
+}
+
+/**
+ * Executes an approved redirection: creates a new Application on the target
+ * role in Recruiter Review (source: Internal Redirect), gives the receiving
+ * recruiter a review task, drafts the warm candidate note for approval, and
+ * audits both sides. Falls back to best-criteria-match when the redirect was
+ * HM-initiated without a specific target role.
+ */
+async function executeRedirect(actionId: string, actorName: string): Promise<ExecutionReceipt> {
+  const now = new Date();
+  const action = await db.action.findUniqueOrThrow({
+    where: { id: actionId },
+    include: {
+      application: {
+        include: { candidate: true, role: true },
+      },
+    },
+  });
+  const cand = action.application.candidate;
+  const oldRole = action.application.role;
+
+  // Roles the candidate already has an application on are not valid targets.
+  const existingRoleIds = (
+    await db.application.findMany({
+      where: { candidateId: cand.id },
+      select: { roleId: true },
+    })
+  ).map((a) => a.roleId);
+
+  let targetRoleId = action.targetRoleId;
+  if (targetRoleId && existingRoleIds.includes(targetRoleId)) targetRoleId = null;
+
+  if (!targetRoleId) {
+    // HM-initiated redirect ("find a better fit") — match now, same keyword
+    // overlap the agent uses for rejection triage.
+    const openRoles = await db.role.findMany({
+      where: { status: "OPEN", id: { notIn: existingRoleIds } },
+    });
+    const strengths: string[] = JSON.parse(cand.strengths);
+    const profileText = (strengths.join(" ") + " " + cand.summary).toLowerCase();
+    let best: { id: string; overlap: number } | null = null;
+    for (const r of openRoles) {
+      const criteria: string[] = JSON.parse(r.requiredCriteria);
+      const overlap = criteria.filter((c) =>
+        c.toLowerCase().split(/[^a-z+]+/).some((w) => w.length > 3 && profileText.includes(w))
+      ).length;
+      if (overlap > 0 && (!best || overlap > best.overlap)) best = { id: r.id, overlap };
+    }
+    targetRoleId = best?.id ?? null;
+  }
+
+  if (!targetRoleId) {
+    await db.action.update({ where: { id: actionId }, data: { status: "DISMISSED" } });
+    await audit({
+      applicationId: action.applicationId,
+      actionId,
+      actorType: "HUMAN",
+      actorName,
+      eventType: "ACTION_DISMISSED",
+      title: `Redirect closed — no open role matches ${cand.name}`,
+      previousState: action.status,
+      newState: "DISMISSED",
+      rationale: "No open role overlaps the candidate's profile and the candidate has applications on all matching roles.",
+    });
+    refresh();
+    return {
+      performed: `No open role currently matches ${cand.name} — no application created`,
+      recipient: null,
+      channel: null,
+      candidateName: cand.name,
+      resultingState: "Redirect closed; candidate remains where they were",
+      nextAction: "None — re-propose when a matching role opens",
+      escalation: null,
+    };
+  }
+
+  const targetRole = await db.role.findUniqueOrThrow({
+    where: { id: targetRoleId },
+    include: { recruiter: true },
+  });
+  const firstStage = await db.pipelineStage.findFirstOrThrow({
+    where: { name: "Recruiter Review" },
+  });
+
+  const org = await db.organization.findFirstOrThrow();
+  let source = await db.externalSource.findFirst({
+    where: { organizationId: org.id, type: "INTERNAL" },
+  });
+  if (!source) {
+    source = await db.externalSource.create({
+      data: {
+        organizationId: org.id,
+        type: "INTERNAL",
+        name: "Internal Redirect",
+        details: "Moved from another Helios pipeline after a role-fit decision",
+      },
+    });
+  }
+
+  const newApp = await db.application.create({
+    data: {
+      candidateId: cand.id,
+      roleId: targetRole.id,
+      stageId: firstStage.id,
+      sourceId: source.id,
+      status: "ACTIVE",
+      momentum: "MOVING",
+      risk: "LOW",
+      appliedAt: now,
+      stageEnteredAt: now,
+      lastActivityAt: now,
+      lastCandidateUpdateAt: action.application.lastCandidateUpdateAt,
+    },
+  });
+
+  // The receiving recruiter owns the first look; the invariant holds from minute one.
+  const reviewTask = await db.action.create({
+    data: {
+      applicationId: newApp.id,
+      type: "TASK",
+      title: `Review ${cand.name}'s redirected application`,
+      proposedContent: `${cand.name} was moved from the ${oldRole.title} pipeline after a role-fit decision. Prior interview signal carries over — review against ${targetRole.title} criteria and decide the first step.`,
+      rationale: `Internal redirects skip cold intake but still need a recruiter decision within the 24h review SLA.`,
+      supportingFacts: JSON.stringify([
+        `Redirected from ${oldRole.title}`,
+        `Approved by ${actorName}`,
+      ]),
+      escalationNote: "Unreviewed after 48h: Relay escalates to the recruiting lead.",
+      ownerId: targetRole.recruiterId,
+      status: "APPROVED",
+      risk: "LOW",
+      approvalMode: "APPROVAL_REQUIRED",
+      createdBy: "AGENT",
+      dueAt: new Date(now.getTime() + 24 * 3600_000),
+      createdAt: now,
+    },
+  });
+
+  // Candidate-facing warm note — drafted, never auto-sent.
+  await db.action.create({
+    data: {
+      applicationId: newApp.id,
+      type: "CANDIDATE_UPDATE",
+      title: `Send ${cand.name} the warm note about ${targetRole.title}`,
+      proposedContent: `Hi ${cand.name.split(" ")[0]},\n\nThank you again for the time you've spent with us on the ${oldRole.title} process. The panel was genuinely impressed — and we think your background is an even stronger match for our ${targetRole.title} opening. With your permission, we'd like to move you into that process directly, carrying over what we've already learned rather than starting from zero.\n\nBest,\n${targetRole.recruiter.name}`,
+      rationale: `A redirect without a candidate-facing explanation reads as a silent rejection; this frames it as the opportunity it is.`,
+      supportingFacts: JSON.stringify([
+        `Redirected from ${oldRole.title} to ${targetRole.title}`,
+      ]),
+      escalationNote: "Unsent after 2 business days: the recruiting lead is flagged — the candidate is in the dark.",
+      ownerId: targetRole.recruiterId,
+      status: "PROPOSED",
+      risk: "MEDIUM",
+      approvalMode: "APPROVAL_REQUIRED",
+      createdBy: "AGENT",
+      dueAt: new Date(now.getTime() + 24 * 3600_000),
+      createdAt: now,
+    },
+  });
+
+  await db.action.update({
+    where: { id: actionId },
+    data: { status: "COMPLETED", completedAt: now },
+  });
+  await db.application.update({
+    where: { id: action.applicationId },
+    data: { lastActivityAt: now },
+  });
+
+  await audit({
+    applicationId: action.applicationId,
+    actionId,
+    actorType: "HUMAN",
+    actorName,
+    eventType: "ACTION_APPROVED",
+    title: `Approved redirect: ${cand.name} → ${targetRole.title}`,
+    previousState: action.status,
+    newState: "COMPLETED",
+    rationale: action.rationale,
+  });
+  await audit({
+    applicationId: newApp.id,
+    actorType: "AGENT",
+    actorName: "Relay Agent",
+    eventType: "SUBMISSION",
+    title: `Application created via internal redirect from ${oldRole.title}`,
+    detail: `Approved by ${actorName}. ${targetRole.recruiter.name} owns the first review; a warm note to ${cand.name} is drafted and awaiting approval.`,
+    newState: "Recruiter Review",
+  });
+
+  refresh();
+  return {
+    performed: `Moved ${cand.name} into the ${targetRole.title} pipeline`,
+    recipient: targetRole.recruiter.name,
+    channel: "New application · Recruiter Review",
+    candidateName: cand.name,
+    resultingState: `Active on ${targetRole.title} · Moving · owned by ${targetRole.recruiter.name}`,
+    nextAction: `${reviewTask.title} — ${targetRole.recruiter.name}, due in 24h; warm note to ${cand.name} drafted for approval`,
+    escalation: reviewTask.escalationNote,
   };
 }
 

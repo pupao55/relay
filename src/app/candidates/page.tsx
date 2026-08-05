@@ -24,6 +24,7 @@ export default async function CandidatesPage() {
     const next = a.actions.find((x) => OPEN_STATUSES.includes(x.status));
     const due = next ? dueLabel(next.dueAt, now) : null;
     return {
+      applicationId: a.id,
       candidateId: a.candidate.id,
       name: a.candidate.name,
       company: a.candidate.currentCompany,

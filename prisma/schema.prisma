@@ -180,6 +180,10 @@ model Action {
 
   // What happens if nobody responds ("Escalates to Sarah Kim after 24h")
   escalationNote String?
+  // For REDIRECTION actions: the role the candidate should move to.
+  // Null when the recruiter should pick (HM-initiated redirects); resolved
+  // by best-criteria-match at approval time.
+  targetRoleId String?
 
   ownerId     String
   recipientId String?

@@ -127,7 +127,41 @@ check("timeline: next action creation audited", /Created next action/i.test(time
 await shot("05-maya-timeline");
 
 // ---------------------------------------------------------------------------
-// 4. Remaining loop mechanics (dismiss, bulk approve, automations, audit)
+// 4. Redirect triage: Sofia Marino -> ML Infrastructure Engineer pipeline
+// ---------------------------------------------------------------------------
+await page.goto(BASE + "/actions", { waitUntil: "networkidle" });
+const sofiaCard = page
+  .locator("li", { has: page.locator("text=Consider Sofia Marino") })
+  .first();
+check("redirect proposal lists matching criteria", (await sofiaCard.locator("text=Kubernetes").count()) > 0);
+await sofiaCard.locator("button:has-text('Approve')").click();
+await page.waitForSelector("text=Action performed", { timeout: 8000 });
+const redirectReceipt = await page.locator("[role='dialog']").innerText();
+check(
+  "redirect receipt: moved into target pipeline",
+  /Moved Sofia Marino into the ML Infrastructure Engineer pipeline/i.test(redirectReceipt)
+);
+check("redirect receipt: receiving recruiter named", /Priya Sharma/.test(redirectReceipt));
+check("redirect receipt: warm note drafted", /warm note/i.test(redirectReceipt));
+await page.locator("[role='dialog'] button:has-text('Done')").click();
+await page.waitForTimeout(1500);
+
+await page.goto(BASE + "/candidates", { waitUntil: "networkidle" });
+const sofiaRows = page.locator("tr", { has: page.locator("text=Sofia Marino") });
+check("Sofia has two applications (old + redirect)", (await sofiaRows.count()) === 2);
+const rowsText = await page.locator("tbody").innerText();
+check(
+  "Sofia active on ML Infrastructure Engineer via Redirect",
+  /Sofia Marino[\s\S]*?ML Infrastructure Engineer/.test(rowsText)
+);
+
+await page.locator("a:has-text('Sofia Marino')").first().click();
+await page.waitForSelector("text=Next best action", { timeout: 8000 });
+const sofiaPage = await page.locator("main").innerText();
+check("new pipeline has a next action from minute one", /redirected application/i.test(sofiaPage));
+
+// ---------------------------------------------------------------------------
+// 5. Remaining loop mechanics (dismiss, bulk approve, automations, audit)
 // ---------------------------------------------------------------------------
 await page.goto(BASE + "/", { waitUntil: "networkidle" });
 const beforeDismiss = await page.locator("li:has(button:has-text('Approve'))").count();

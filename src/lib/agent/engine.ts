@@ -49,6 +49,8 @@ export interface Recommendation {
   dueAt: Date;
   /** What happens if nobody responds — shown on the action card. */
   escalationNote: string;
+  /** REDIRECTION only: the matched role to move the candidate into. */
+  targetRoleId?: string;
   /** True when this action may never auto-execute regardless of rule mode. */
   requiresApproval: boolean;
 }
@@ -489,6 +491,7 @@ export function recommendForApplication(
       push({
         ruleKey: "redirection",
         type: "REDIRECTION",
+        targetRoleId: best.roleId,
         title: `Consider ${cand.name} for ${best.title}`,
         proposedContent: `${cand.name} was closed out on ${role.title} (${app.resolutionReason}) but their profile matches ${best.title} on: ${best.overlap.join("; ")}. Propose redirecting them into that pipeline with a warm note rather than a cold rejection.`,
         rationale: `Rejection was role-specific, not a signal on the candidate. Their strengths overlap ${best.overlap.length} required criteria on ${best.title}.`,

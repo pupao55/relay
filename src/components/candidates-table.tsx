@@ -25,6 +25,7 @@ import { MomentumBadge, RiskBadge, SourceBadge, StageBadge } from "@/components/
 import { UserAvatar } from "@/components/user-avatar";
 
 export interface CandidateRow {
+  applicationId: string;
   candidateId: string;
   name: string;
   company: string;
@@ -216,7 +217,7 @@ export function CandidatesTable({
             ) : (
               filtered.map((r) => (
                 <TableRow
-                  key={r.candidateId}
+                  key={r.applicationId}
                   className="cursor-pointer text-[13px]"
                   onClick={() => router.push(`/candidates/${r.candidateId}`)}
                 >

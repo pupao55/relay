@@ -78,6 +78,13 @@ The agent lives behind three hard boundaries:
 | `no-next-action` | Active app with zero open actions | CRITICAL integrity issue |
 | `redirection` | Role-specific rejection + criteria overlap with another open role | Redirection proposal |
 
+Redirections execute structurally rather than as messages: approving one creates a new
+`Application` on the target role (source: Internal Redirect) in Recruiter Review, a
+review task for the receiving recruiter, and a drafted candidate-facing warm note that
+still requires approval. Agent-proposed redirects carry a `targetRoleId`; HM-initiated
+redirects ("strong, wrong team") resolve the target by best criteria overlap at approval
+time, and close out with an audit trail if no open role matches.
+
 Competing-deadline detection is cross-cutting: a competing process within 3 days elevates
 momentum to At Risk and risk to HIGH (CRITICAL inside 2 days), and is threaded into the
 drafted message content ("Maya has a Citadel final on Friday…").

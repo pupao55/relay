@@ -64,6 +64,7 @@ export const SOURCE_TYPES = [
   "REFERRAL",
   "INBOUND",
   "AGENCY",
+  "INTERNAL",
 ] as const;
 export type SourceType = (typeof SOURCE_TYPES)[number];
 
@@ -188,6 +189,7 @@ export const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
   REFERRAL: "Referral",
   INBOUND: "Inbound",
   AGENCY: "Agency",
+  INTERNAL: "Redirect",
 };
 
 export const AUTOMATION_MODE_META: Record<AutomationMode, { label: string; description: string }> = {
