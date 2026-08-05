@@ -106,6 +106,7 @@ export async function runAgent(trigger: "SCHEDULED" | "MANUAL", now = new Date()
           proposedContent: rec.proposedContent,
           rationale: rec.rationale,
           supportingFacts: JSON.stringify(rec.supportingFacts),
+          escalationNote: rec.escalationNote,
           ownerId: rec.ownerId,
           recipientId: rec.recipientId,
           status: autoExecute ? "WAITING" : "PROPOSED",

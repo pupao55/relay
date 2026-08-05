@@ -47,6 +47,8 @@ export interface Recommendation {
   recipientId: string | null;
   risk: RiskLevel;
   dueAt: Date;
+  /** What happens if nobody responds — shown on the action card. */
+  escalationNote: string;
   /** True when this action may never auto-execute regardless of rule mode. */
   requiresApproval: boolean;
 }
@@ -223,10 +225,28 @@ export function recommendForApplication(
       ? `${cand.name} has ${cand.competingProcess.toLowerCase().startsWith("final") || cand.competingProcess.toLowerCase().startsWith("offer") ? "a " : ""}${cand.competingProcess} on ${fmtDate(cand.competingDeadline)}`
       : null;
 
-  const push = (r: Omit<Recommendation, "requiresApproval">) => {
+  // What happens if the owner does nothing — mirrors the seeded rule
+  // escalation paths, personalized to this application's team.
+  const escalations: Record<string, string> = {
+    "recruiter-review-24h": `Unreviewed after 48h: Relay escalates to the recruiting lead.`,
+    "hm-review-48h":
+      hoursInStage > 72
+        ? `No response by tomorrow: Relay flags ${cand.name} to the department head and drafts a hold-note to the candidate.`
+        : `No response within 24h: Relay escalates to a direct ping from ${recruiter.name}${competing ? ` — before ${cand.name}'s competing deadline` : ""}.`,
+    "feedback-12h": `Still missing after 24h: Relay escalates to ${hm.name} and flags the debrief as blocked.`,
+    "scheduling-24h": `Unscheduled after 24h: Relay hands scheduling to the coordinator pool.`,
+    "candidate-update-3bd": `Unsent after 5 business days: the recruiting lead is flagged; withdrawal risk is raised.`,
+    "offer-approval-24h": `Unapproved today: Relay escalates to the department head, then the CFO delegate.`,
+    "idle-7d": `Untouched after 24h: the recruiting lead reviews whether to close the process.`,
+    "no-next-action": `Unresolved in 2h: the recruiting lead is notified — an ownerless candidate violates the core invariant.`,
+    redirection: `No decision in 48h: ${cand.name} is closed out with a standard note and the match is dropped.`,
+  };
+
+  const push = (r: Omit<Recommendation, "requiresApproval" | "escalationNote">) => {
     if (ctx.ruleModes[r.ruleKey] === "DISABLED") return;
     recs.push({
       ...r,
+      escalationNote: escalations[r.ruleKey] ?? "Re-raised on the next agent pass.",
       requiresApproval:
         ALWAYS_APPROVAL_ACTION_TYPES.includes(r.type) ||
         r.risk === "HIGH" ||

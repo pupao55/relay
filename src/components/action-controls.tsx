@@ -31,6 +31,7 @@ import {
   dismissAction,
   editAction,
 } from "@/lib/actions";
+import { showReceipt } from "@/components/receipt-host";
 
 export interface ActionControlsProps {
   action: {
@@ -72,7 +73,12 @@ export function ActionControls({ action, users = [], showComplete = false, size 
             size="sm"
             className={btnClass}
             disabled={pending}
-            onClick={() => run(() => approveAction(action.id), "Action approved — Relay is executing it")}
+            onClick={() =>
+              startTransition(async () => {
+                const r = await approveAction(action.id);
+                if (r) showReceipt(r);
+              })
+            }
           >
             <Check className="size-3.5" /> Approve
           </Button>
@@ -187,9 +193,10 @@ export function ActionControls({ action, users = [], showComplete = false, size 
               onClick={() =>
                 startTransition(async () => {
                   await editAction(action.id, { title, proposedContent: content });
-                  await approveAction(action.id);
-                  toast.success("Updated and approved");
+                  const r = await approveAction(action.id);
                   setEditOpen(false);
+                  if (r) showReceipt(r);
+                  else toast.success("Updated and approved");
                 })
               }
             >

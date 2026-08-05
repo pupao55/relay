@@ -143,12 +143,39 @@ export default async function AnalyticsPage() {
   }
   const momentumByRole = [...roleMap.entries()].map(([role, v]) => ({ role, ...v }));
 
+  // Idle candidate-days: outstanding = Σ floor(days since lastActivityAt) over
+  // active applications. Resolved = Σ (completedAt − createdAt) in days over
+  // agent-created actions completed in the last 7 days — the age of the blocker
+  // at the moment a Relay action closed it.
+  const idleDaysOutstanding = active.reduce(
+    (s, a) => s + Math.floor((now.getTime() - a.lastActivityAt.getTime()) / (24 * HOUR)),
+    0
+  );
+  const weekAgo = new Date(now.getTime() - 7 * 24 * HOUR);
+  const idleDaysResolved =
+    Math.round(
+      actions
+        .filter((a) => a.status === "COMPLETED" && a.createdBy === "AGENT" && a.completedAt && a.completedAt >= weekAgo)
+        .reduce((s, a) => s + (a.completedAt!.getTime() - a.createdAt.getTime()) / (24 * HOUR), 0) * 10
+    ) / 10;
+
   const stats = [
     {
       label: "Applications with a valid next action",
       value: `${pctNextAction}%`,
       sub: `${withNextAction.length} of ${active.length} active`,
       alert: pctNextAction < 100,
+    },
+    {
+      label: "Idle candidate-days outstanding",
+      value: `${idleDaysOutstanding}`,
+      sub: "Σ days since last activity, active candidates",
+      alert: idleDaysOutstanding > active.length,
+    },
+    {
+      label: "Idle days resolved by Relay (7d)",
+      value: `${idleDaysResolved}`,
+      sub: "Σ blocker age at close, completed Relay actions",
     },
     { label: "Average idle time", value: fmtHours(avgIdleHours), sub: "across active candidates" },
     { label: "Withdrawal rate", value: `${withdrawalRate}%`, sub: `${withdrawn} of ${apps.length} applications` },
@@ -166,7 +193,7 @@ export default async function AnalyticsPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {stats.map((s) => (
           <div key={s.label} className="rounded-lg border border-border bg-card px-3.5 py-3">
             <div className="text-[11px] font-medium leading-snug text-muted-foreground">{s.label}</div>
@@ -181,6 +208,13 @@ export default async function AnalyticsPage() {
           </div>
         ))}
       </div>
+
+      <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+        Idle candidate-days formula — outstanding: sum over active applications of whole days
+        since the last logged activity. Resolved: for each Relay-created action completed in the
+        last 7 days, the days between its creation (when the blocker breached SLA) and its
+        completion; summed. Both derive from timestamps visible on each candidate&apos;s timeline.
+      </p>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Section

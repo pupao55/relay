@@ -1,7 +1,44 @@
-# Relay — 5-Minute Demo Script
+# Relay — Demo Script
 
 > Setup: `npm run db:seed && npm run dev`, open http://localhost:3000.
 > Re-seed right before the demo so all SLA clocks are live.
+
+## The 2-minute core story: Maya Chen, At Risk → Moving
+
+This is the loop that makes Relay not-an-ATS. Run it first, uninterrupted.
+
+**0:00 — Open the Command Center.** The headline isn't a dashboard — it's a sentence:
+*"5 candidates need intervention now."* Below it, four numbers that divide the work:
+who needs intervention, what Relay executes automatically, what needs human judgment,
+and who is at immediate withdrawal risk.
+
+**0:15 — Read Maya's card, top of "Immediate withdrawal risk."** Every card answers five
+questions in order: **Blocked** — James Wu has not reviewed the profile (3 days).
+**Why now** — Maya has a Citadel final round Friday. **Owner** — Sarah Kim, due in 3h.
+**Relay will** — send the escalation it already drafted, competing-deadline context
+included. **If no one responds** — flagged to the department head tomorrow, hold-note
+drafted for Maya. Nothing here is a score; everything is a fact with a consequence.
+
+**0:40 — Click Approve.** The **execution receipt** appears: what was sent, to whom
+(James Wu), Maya's resulting state (waiting on James, still At Risk), the new next
+action, and the escalation clock now running. Close it — the card has left the queue.
+
+**1:00 — Open Maya's profile → "Review as hiring manager."** This is James's entire
+experience: summary, 4/4 fit against *his* criteria, the one concern (comp at top of
+band), the timing banner, résumé, and four buttons. No ATS navigation, no tabs.
+
+**1:20 — Click Advance.** The decision receipt shows the whole state change: Hiring
+Manager Review → Phone Screen, momentum **At Risk → Moving**, and the next action Relay
+just created — *Schedule Maya's phone screen, Sarah Kim, due in 24h*.
+
+**1:40 — Open the Timeline tab.** The full story is audited: the stall, the escalation,
+the approval, James's decision, the scheduling action creation — each stamped human,
+agent, or system. "Blocked candidate to moving candidate in four clicks, two people,
+zero chasing — and every step attributable."
+
+---
+
+## The 5-minute extended walkthrough
 
 ## 0:00 — The one-liner
 
@@ -11,24 +48,20 @@ doesn't, Relay treats it as an error."
 
 ## 0:20 — Command Center
 
-- Point at the stat row: ~18 active, ~7 blocked, 1 at risk. "This is the entire job: get
-  blocked to zero."
-- The **Attention Required** queue is ranked by risk. Read the top card aloud —
-  **Maya Chen**: Senior Quant Researcher, Hiring Manager Review, 3 days in stage.
-  Blocker: *James Wu has not reviewed the profile*. Context: *Citadel final round Friday*.
-  "Relay didn't just flag the stall — it knows she has a competing final in three days,
-  drafted the escalation, and attached the facts it reasoned from."
-- Click **Edit** to show the draft is editable, then **Approve**. "One click. The message
-  is sent, the action moves to 'waiting on James', and every step was audit-logged."
-- Show the right rail: *Today's Agent Summary* — the day's brief in four lines.
+- Run the 2-minute Maya story above.
+- Point out the queue grouping: **withdrawal risk → unowned → blocked → overdue** —
+  urgency order, not stage order.
+- Show the right rail: the execution brief, plus **idle candidate-days** — days
+  candidates sat without activity, and how many of those days completed Relay actions
+  closed out this week.
 
-## 1:30 — The error state
+## 2:20 — The error state
 
-- Still on the queue: find **Nate Brooks** — "No next action defined." "This is the core
+- In the queue: **Nate Brooks** under "Unowned — error state." "This is the core
   invariant. Nobody dropped him silently; Relay raised it as a critical issue with a
-  2-hour due date."
+  2-hour due date and told you what happens if it's ignored."
 
-## 1:50 — Candidates
+## 2:40 — Candidates
 
 - Open **Candidates**. "Dense, sortable, and honest — momentum is a label you can defend
   (Moving / Slowing / Blocked / At Risk), not an unexplained score."
@@ -38,7 +71,7 @@ doesn't, Relay treats it as an error."
   overdue scorecards), then the **Timeline** tab: "submission → interviews → agent
   proposals → executions — every event stamped with who or what initiated it."
 
-## 3:00 — Actions & safety
+## 3:30 — Actions & safety
 
 - Open **Actions**. "The approval queue. Low-risk internal actions support bulk approval —
   select all, approve. Candidate-facing and offer-related actions never auto-execute;
@@ -46,7 +79,7 @@ doesn't, Relay treats it as an error."
 - Flip to **Waiting on Others** — "the reminders Relay already sent automatically under
   the 24-hour recruiter-review rule."
 
-## 3:45 — Automations
+## 4:00 — Automations
 
 - Open **Automations**. Walk one rule: *Hiring-manager review within 48 hours* — trigger,
   conditions, proposed action, escalation path, and the mode selector (suggest / automatic

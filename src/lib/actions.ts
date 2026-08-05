@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { runAgent } from "@/lib/agent/run";
 import { CURRENT_USER_EMAIL } from "@/lib/current-user";
+import { MOMENTUM_META, type ExecutionReceipt, type Momentum, type ReviewReceipt } from "@/lib/types";
 
 async function currentUser() {
   return db.user.findUniqueOrThrow({ where: { email: CURRENT_USER_EMAIL } });
@@ -43,14 +44,15 @@ function refresh() {
  * Approving a proposed action lets the agent execute it:
  * message-type actions send a communication; the action moves to WAITING
  * (on a recipient) or COMPLETED (candidate updates), task-types to APPROVED.
+ * Returns an execution receipt describing exactly what happened.
  */
-export async function approveAction(actionId: string) {
+export async function approveAction(actionId: string): Promise<ExecutionReceipt | null> {
   const user = await currentUser();
   const action = await db.action.findUniqueOrThrow({
     where: { id: actionId },
     include: { application: { include: { candidate: true } }, recipient: true },
   });
-  if (!["PROPOSED", "WAITING"].includes(action.status)) return;
+  if (!["PROPOSED", "WAITING"].includes(action.status)) return null;
 
   const messageTypes = ["REMINDER", "ESCALATION", "FEEDBACK_REQUEST", "CANDIDATE_UPDATE", "OFFER_APPROVAL"];
   const isMessage = messageTypes.includes(action.type);
@@ -118,6 +120,61 @@ export async function approveAction(actionId: string) {
   }
 
   refresh();
+
+  // Build the execution receipt.
+  const cand = action.application.candidate;
+  const recipientName = action.recipient?.name ?? (isCandidateFacing ? cand.name : null);
+  const momentumLabel =
+    MOMENTUM_META[action.application.momentum as Momentum]?.label ?? action.application.momentum;
+
+  let performed: string;
+  let channel: string | null = null;
+  if (isCandidateFacing) {
+    performed = `Sent the status update to ${cand.name}`;
+    channel = "Email";
+  } else if (isMessage) {
+    performed = `Sent: ${action.title}`;
+    channel = "Internal message";
+  } else {
+    performed = `Approved and started: ${action.title}`;
+  }
+
+  let resultingState: string;
+  let nextActionText: string;
+  if (newStatus === "WAITING") {
+    resultingState = recipientName
+      ? `Waiting on ${recipientName} · candidate remains ${momentumLabel}`
+      : `Waiting on response · candidate remains ${momentumLabel}`;
+    nextActionText = recipientName
+      ? `Awaiting ${recipientName}'s response — tracked against the deadline`
+      : "Awaiting response — tracked against the deadline";
+  } else if (newStatus === "COMPLETED") {
+    const nextOpen = await db.action.findFirst({
+      where: {
+        applicationId: action.applicationId,
+        status: { in: ["PROPOSED", "APPROVED", "IN_PROGRESS", "WAITING"] },
+      },
+      orderBy: { dueAt: "asc" },
+      include: { owner: true },
+    });
+    resultingState = `Candidate updated · momentum ${momentumLabel}`;
+    nextActionText = nextOpen
+      ? `${nextOpen.title} (${nextOpen.owner.name})`
+      : "Relay derives the next action on its next pass";
+  } else {
+    resultingState = `In progress with ${user.name} · candidate ${momentumLabel}`;
+    nextActionText = `${action.title} — due tracked for ${user.name}`;
+  }
+
+  return {
+    performed,
+    recipient: recipientName,
+    channel,
+    candidateName: cand.name,
+    resultingState,
+    nextAction: nextActionText,
+    escalation: action.escalationNote,
+  };
 }
 
 export async function editAction(
@@ -279,6 +336,251 @@ export async function updateApplicationStage(applicationId: string, stageId: str
     newState: stage.name,
   });
   refresh();
+}
+
+/**
+ * Lightweight hiring-manager review: one decision updates the stage, closes the
+ * blocking review action, creates the appropriate next action, and audits every
+ * step. Acts as the role's hiring manager (the prototype's HM view).
+ */
+export async function hmReviewDecision(
+  applicationId: string,
+  decision: "ADVANCE" | "DECLINE" | "REQUEST_INFO" | "REDIRECT",
+  note?: string
+): Promise<ReviewReceipt> {
+  const app = await db.application.findUniqueOrThrow({
+    where: { id: applicationId },
+    include: {
+      candidate: true,
+      stage: true,
+      role: { include: { recruiter: true, hiringManager: true } },
+      actions: true,
+    },
+  });
+  const hm = app.role.hiringManager;
+  const recruiter = app.role.recruiter;
+  const cand = app.candidate;
+  const momentumBefore = app.momentum;
+  const now = new Date();
+
+  // The decision resolves whatever review chase was open.
+  const openReviewActions = app.actions.filter(
+    (a) =>
+      ["PROPOSED", "APPROVED", "IN_PROGRESS", "WAITING"].includes(a.status) &&
+      ["REMINDER", "ESCALATION", "TASK", "DATA_INTEGRITY"].includes(a.type)
+  );
+  for (const a of openReviewActions) {
+    await db.action.update({
+      where: { id: a.id },
+      data: { status: "COMPLETED", completedAt: now },
+    });
+    await audit({
+      applicationId,
+      actionId: a.id,
+      actorType: "SYSTEM",
+      actorName: "Relay",
+      eventType: "ACTION_COMPLETED",
+      title: `Resolved by ${hm.name}'s review decision: ${a.title}`,
+      previousState: a.status,
+      newState: "COMPLETED",
+    });
+  }
+
+  let newStage = app.stage.name;
+  let momentumAfter = momentumBefore;
+  let nextAction = "";
+
+  if (decision === "ADVANCE") {
+    const next = await db.pipelineStage.findFirstOrThrow({
+      where: { order: app.stage.order + 1 },
+    });
+    newStage = next.name;
+    momentumAfter = "MOVING";
+    await db.application.update({
+      where: { id: applicationId },
+      data: {
+        stageId: next.id,
+        stageEnteredAt: now,
+        lastActivityAt: now,
+        momentum: "MOVING",
+        risk: "LOW",
+        blockerType: "NONE",
+        blockerDescription: null,
+      },
+    });
+    await audit({
+      applicationId,
+      actorType: "HUMAN",
+      actorName: hm.name,
+      eventType: "STAGE_CHANGE",
+      title: `${hm.name} advanced ${cand.name} to ${next.name}`,
+      previousState: app.stage.name,
+      newState: next.name,
+      rationale: note || undefined,
+    });
+
+    if (next.kind === "INTERVIEW") {
+      await db.interview.create({
+        data: {
+          applicationId,
+          name: next.name,
+          status: "NEEDS_SCHEDULING",
+          durationMins: next.name === "Phone Screen" ? 45 : 90,
+        },
+      });
+    }
+    const scheduling = await db.action.create({
+      data: {
+        applicationId,
+        type: "SCHEDULING",
+        title: `Schedule ${cand.name}'s ${next.name.toLowerCase()}`,
+        proposedContent: `Propose ${next.name.toLowerCase()} times to ${cand.name} today.${cand.competingDeadline ? ` The competing deadline (${cand.competingDeadline.toLocaleDateString("en-US", { weekday: "long" })}) means the earliest slot wins.` : ""}`,
+        rationale: `${hm.name} advanced the candidate; scheduling is now the blocking step.`,
+        supportingFacts: JSON.stringify([
+          `Advanced to ${next.name} by ${hm.name}`,
+          ...(cand.competingProcess ? [`Competing process: ${cand.competingProcess}`] : []),
+        ]),
+        escalationNote: "Unscheduled after 24h: Relay hands scheduling to the coordinator pool.",
+        ownerId: recruiter.id,
+        status: "APPROVED",
+        risk: cand.competingDeadline ? "MEDIUM" : "LOW",
+        approvalMode: "APPROVAL_REQUIRED",
+        createdBy: "AGENT",
+        dueAt: new Date(now.getTime() + 24 * 3600_000),
+        createdAt: now,
+      },
+    });
+    await audit({
+      applicationId,
+      actionId: scheduling.id,
+      actorType: "AGENT",
+      actorName: "Relay Agent",
+      eventType: "AGENT_PROPOSAL",
+      title: `Created next action: ${scheduling.title}`,
+      newState: "APPROVED",
+      rationale: scheduling.rationale,
+    });
+    nextAction = `${scheduling.title} — ${recruiter.name}, due in 24h`;
+  }
+
+  if (decision === "DECLINE") {
+    await db.application.update({
+      where: { id: applicationId },
+      data: {
+        status: "REJECTED",
+        resolutionReason: note || `Declined at ${app.stage.name} by ${hm.name}`,
+        lastActivityAt: now,
+        momentum: "MOVING",
+        risk: "LOW",
+        blockerType: "NONE",
+        blockerDescription: null,
+      },
+    });
+    await audit({
+      applicationId,
+      actorType: "HUMAN",
+      actorName: hm.name,
+      eventType: "REJECTION",
+      title: `${hm.name} declined ${cand.name}`,
+      previousState: "ACTIVE",
+      newState: "REJECTED",
+      rationale: note || undefined,
+    });
+    momentumAfter = "MOVING";
+    newStage = `${app.stage.name} (closed)`;
+    nextAction = `${recruiter.name} sends the close-out note — Relay drafts it on the next pass`;
+  }
+
+  if (decision === "REQUEST_INFO") {
+    const task = await db.action.create({
+      data: {
+        applicationId,
+        type: "TASK",
+        title: `Get ${hm.name} the information requested on ${cand.name}`,
+        proposedContent: note || `${hm.name} needs more information before deciding.`,
+        rationale: `${hm.name} reviewed but needs more before a decision; the review clock keeps running.`,
+        supportingFacts: JSON.stringify([`Requested during hiring-manager review`]),
+        escalationNote: "Unanswered after 24h: Relay re-raises the review with the added context.",
+        ownerId: recruiter.id,
+        recipientId: hm.id,
+        status: "APPROVED",
+        risk: "LOW",
+        approvalMode: "APPROVAL_REQUIRED",
+        createdBy: "AGENT",
+        dueAt: new Date(now.getTime() + 24 * 3600_000),
+        createdAt: now,
+      },
+    });
+    await db.application.update({
+      where: { id: applicationId },
+      data: {
+        lastActivityAt: now,
+        momentum: "SLOWING",
+        blockerType: "RECRUITER",
+        blockerDescription: `${hm.name} requested more information`,
+      },
+    });
+    await audit({
+      applicationId,
+      actionId: task.id,
+      actorType: "HUMAN",
+      actorName: hm.name,
+      eventType: "INFO_REQUESTED",
+      title: `${hm.name} requested more information on ${cand.name}`,
+      detail: note || undefined,
+    });
+    momentumAfter = "SLOWING";
+    nextAction = `${task.title} — ${recruiter.name}, due in 24h`;
+  }
+
+  if (decision === "REDIRECT") {
+    const redirect = await db.action.create({
+      data: {
+        applicationId,
+        type: "REDIRECTION",
+        title: `Find a better-fit role for ${cand.name}`,
+        proposedContent:
+          note ||
+          `${hm.name} sees strength but not for ${app.role.title}. Compare ${cand.name}'s profile against the other open pipelines before closing out.`,
+        rationale: `${hm.name} flagged the profile as strong-but-wrong-role during review.`,
+        supportingFacts: JSON.stringify([`Redirect suggested during hiring-manager review`]),
+        escalationNote: `No decision in 48h: ${cand.name} is closed out with a standard note.`,
+        ownerId: recruiter.id,
+        status: "PROPOSED",
+        risk: "MEDIUM",
+        approvalMode: "APPROVAL_REQUIRED",
+        createdBy: "HUMAN",
+        dueAt: new Date(now.getTime() + 48 * 3600_000),
+        createdAt: now,
+      },
+    });
+    await db.application.update({
+      where: { id: applicationId },
+      data: { lastActivityAt: now },
+    });
+    await audit({
+      applicationId,
+      actionId: redirect.id,
+      actorType: "HUMAN",
+      actorName: hm.name,
+      eventType: "REDIRECT_SUGGESTED",
+      title: `${hm.name} suggested redirecting ${cand.name} to another role`,
+      detail: note || undefined,
+    });
+    nextAction = `${redirect.title} — ${recruiter.name}, due in 48h`;
+  }
+
+  refresh();
+  return {
+    decision,
+    actor: hm.name,
+    candidateName: cand.name,
+    previousStage: app.stage.name,
+    newStage,
+    momentumBefore,
+    momentumAfter,
+    nextAction,
+  };
 }
 
 export async function addNote(applicationId: string, body: string) {

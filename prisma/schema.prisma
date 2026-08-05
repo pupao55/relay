@@ -178,6 +178,9 @@ model Action {
   // JSON string[] — the facts the recommendation was derived from
   supportingFacts String
 
+  // What happens if nobody responds ("Escalates to Sarah Kim after 24h")
+  escalationNote String?
+
   ownerId     String
   recipientId String?
 

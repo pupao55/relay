@@ -30,6 +30,7 @@ export default async function ActionsPage() {
       title: a.title,
       proposedContent: a.proposedContent,
       rationale: a.rationale,
+      escalationNote: a.escalationNote,
       facts: JSON.parse(a.supportingFacts),
       status: a.status,
       risk: a.risk,

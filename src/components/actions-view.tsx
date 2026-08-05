@@ -20,6 +20,7 @@ export interface ActionItem {
   title: string;
   proposedContent: string;
   rationale: string;
+  escalationNote: string | null;
   facts: string[];
   status: string;
   risk: string;
@@ -116,6 +117,12 @@ export function ActionsView({
           <p className="mt-1.5 text-xs text-muted-foreground">
             <span className="font-medium text-foreground">Why:</span> {a.rationale}
           </p>
+          {a.escalationNote && !["COMPLETED", "DISMISSED"].includes(a.status) && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">If no one responds:</span>{" "}
+              {a.escalationNote}
+            </p>
+          )}
           {a.facts.length > 0 && (
             <ul className="mt-1.5 flex flex-wrap gap-1.5">
               {a.facts.map((f) => (

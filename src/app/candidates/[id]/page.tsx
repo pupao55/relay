@@ -20,6 +20,7 @@ import { durationSince, dueLabel, shortDate, shortDateTime } from "@/lib/format"
 import { SOURCE_TYPE_LABELS, type SourceType } from "@/lib/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ActionControls } from "@/components/action-controls";
+import { HmReviewSheet, type HmReviewData } from "@/components/hm-review-sheet";
 import { NoteForm } from "@/components/note-form";
 import { StageSelect } from "@/components/stage-select";
 import { MomentumBadge, RiskBadge, SourceBadge, StageBadge, ActionStatusBadge } from "@/components/status-badges";
@@ -99,6 +100,27 @@ export default async function CandidateDetailPage({
   const nextAction = app.actions.find((a) => OPEN_STATUSES.includes(a.status));
   const facts: string[] = nextAction ? JSON.parse(nextAction.supportingFacts) : [];
   const nextDue = nextAction ? dueLabel(nextAction.dueAt, now) : null;
+
+  const hmReview: HmReviewData | null =
+    app.status === "ACTIVE" && app.stage.name === "Hiring Manager Review"
+      ? {
+          applicationId: app.id,
+          candidateName: candidate.name,
+          currentTitle: candidate.currentTitle,
+          currentCompany: candidate.currentCompany,
+          roleTitle: app.role.title,
+          hmName: app.role.hiringManager.name,
+          summary: candidate.summary,
+          evidence: required.map((criterion) => ({ criterion, hit: criteriaMatch(criterion) })),
+          primaryConcern: concerns[0] ?? null,
+          timingRisk:
+            candidate.competingProcess && candidate.competingDeadline
+              ? `${candidate.competingProcess} on ${shortDateTime(candidate.competingDeadline)}`
+              : null,
+          timeInStage: durationSince(app.stageEnteredAt, now),
+          sourceName: app.source.name,
+        }
+      : null;
 
   // Timeline: merge audit logs, communications, and interviews.
   type TimelineEvent = {
@@ -246,6 +268,12 @@ export default async function CandidateDetailPage({
                   ))}
                 </ul>
               )}
+              {nextAction.escalationNote && (
+                <p className="mt-2 text-xs leading-snug text-muted-foreground">
+                  <span className="font-medium text-foreground">If no one responds:</span>{" "}
+                  {nextAction.escalationNote}
+                </p>
+              )}
             </div>
             <div className="shrink-0 text-right text-xs text-muted-foreground">
               <div>
@@ -267,7 +295,7 @@ export default async function CandidateDetailPage({
               </div>
             </div>
           </div>
-          <div className="mt-3 border-t border-border pt-3">
+          <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-border pt-3">
             <ActionControls
               action={{
                 id: nextAction.id,
@@ -279,6 +307,7 @@ export default async function CandidateDetailPage({
               users={users}
               showComplete
             />
+            {hmReview && <HmReviewSheet data={hmReview} />}
           </div>
         </div>
       ) : app.status === "ACTIVE" ? (

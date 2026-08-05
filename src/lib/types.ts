@@ -209,6 +209,31 @@ export const AUTOMATION_MODE_META: Record<AutomationMode, { label: string; descr
   },
 };
 
+// ---------- Execution receipts ----------
+
+/** Returned by approveAction — what Relay just did, shown to the approver. */
+export interface ExecutionReceipt {
+  performed: string;
+  recipient: string | null;
+  channel: string | null;
+  candidateName: string;
+  resultingState: string;
+  nextAction: string;
+  escalation: string | null;
+}
+
+/** Returned by hmReviewDecision — the state change the decision produced. */
+export interface ReviewReceipt {
+  decision: "ADVANCE" | "DECLINE" | "REQUEST_INFO" | "REDIRECT";
+  actor: string;
+  candidateName: string;
+  previousStage: string;
+  newStage: string;
+  momentumBefore: string;
+  momentumAfter: string;
+  nextAction: string;
+}
+
 // High-risk action types can never run automatically, regardless of rule mode.
 export const ALWAYS_APPROVAL_ACTION_TYPES: ActionType[] = [
   "CANDIDATE_UPDATE",
