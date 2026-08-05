@@ -1,0 +1,331 @@
+// Relay — execution layer schema.
+//
+// NOTE ON DATABASES: the prototype runs on SQLite so it works with zero
+// infrastructure. The schema is written to be PostgreSQL-compatible: to move
+// to Postgres, change `provider` to "postgresql", set DATABASE_URL, and
+// (optionally) promote the string pseudo-enums below to native Prisma enums.
+// SQLite does not support Prisma enums, so enum-like fields are `String`
+// columns whose allowed values are defined once in `src/lib/types.ts` and
+// enforced at the application boundary.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  users        User[]
+  roles        Role[]
+  candidates   Candidate[]
+  stages       PipelineStage[]
+  actionRules  ActionRule[]
+  sources      ExternalSource[]
+  integrations Integration[]
+  agentRuns    AgentRun[]
+  auditLogs    AuditLog[]
+}
+
+model User {
+  id             String  @id @default(cuid())
+  organizationId String
+  name           String
+  email          String  @unique
+  // RECRUITER | HIRING_MANAGER | INTERVIEWER | COORDINATOR | ADMIN
+  userRole       String
+  title          String
+  // Median hours this person takes to respond to review/feedback requests (seeded metric).
+  avgResponseHours Int    @default(24)
+
+  organization      Organization    @relation(fields: [organizationId], references: [id])
+  recruitingRoles   Role[]          @relation("RoleRecruiter")
+  managedRoles      Role[]          @relation("RoleHiringManager")
+  ownedActions      Action[]        @relation("ActionOwner")
+  receivedActions   Action[]        @relation("ActionRecipient")
+  feedback          Feedback[]
+  communications    Communication[]
+  interviews        InterviewPanelist[]
+}
+
+model Role {
+  id                String   @id @default(cuid())
+  organizationId    String
+  title             String
+  department        String
+  location          String
+  // CRITICAL | HIGH | STANDARD
+  priority          String   @default("STANDARD")
+  // OPEN | ON_HOLD | FILLED
+  status            String   @default("OPEN")
+  recruiterId       String
+  hiringManagerId   String
+  hiringBrief       String
+  // JSON string[] — must-have criteria
+  requiredCriteria  String
+  // JSON string[] — nice-to-have criteria
+  preferredCriteria String
+  openedAt          DateTime
+
+  organization  Organization  @relation(fields: [organizationId], references: [id])
+  recruiter     User          @relation("RoleRecruiter", fields: [recruiterId], references: [id])
+  hiringManager User          @relation("RoleHiringManager", fields: [hiringManagerId], references: [id])
+  applications  Application[]
+}
+
+model PipelineStage {
+  id             String @id @default(cuid())
+  organizationId String
+  name           String
+  order          Int
+  // Hours an application may sit in this stage before it is considered idle/breaching.
+  slaHours       Int
+  // SCREEN | REVIEW | INTERVIEW | DECISION | OFFER | TERMINAL
+  kind           String
+
+  organization Organization  @relation(fields: [organizationId], references: [id])
+  applications Application[]
+}
+
+model ExternalSource {
+  id             String  @id @default(cuid())
+  organizationId String
+  // DIRECT_SOURCING | REFERRAL | INBOUND | AGENCY
+  type           String
+  name           String
+  details        String?
+
+  organization Organization  @relation(fields: [organizationId], references: [id])
+  applications Application[]
+}
+
+model Candidate {
+  id               String    @id @default(cuid())
+  organizationId   String
+  name             String
+  email            String
+  location         String
+  currentCompany   String
+  currentTitle     String
+  summary          String
+  // JSON string[]
+  strengths        String
+  // JSON string[]
+  concerns         String
+  // JSON [{company, title, years}]
+  priorCompanies   String
+  // Competing process, if known ("Final round at Citadel", etc.)
+  competingProcess String?
+  competingDeadline DateTime?
+  createdAt        DateTime  @default(now())
+
+  organization Organization  @relation(fields: [organizationId], references: [id])
+  applications Application[]
+}
+
+model Application {
+  id          String @id @default(cuid())
+  candidateId String
+  roleId      String
+  stageId     String
+  sourceId    String
+
+  // ACTIVE | REJECTED | WITHDRAWN | HIRED
+  status   String @default("ACTIVE")
+  // MOVING | SLOWING | BLOCKED | AT_RISK — derived by the agent, stored for querying
+  momentum String @default("MOVING")
+  // LOW | MEDIUM | HIGH | CRITICAL
+  risk     String @default("LOW")
+
+  // NONE | HIRING_MANAGER | SCHEDULING | FEEDBACK | RECRUITER | OFFER_APPROVAL | CANDIDATE
+  blockerType        String  @default("NONE")
+  blockerDescription String?
+  // Why the candidate was rejected, when status = REJECTED (used for redirection logic)
+  resolutionReason   String?
+
+  appliedAt             DateTime
+  stageEnteredAt        DateTime
+  lastActivityAt        DateTime
+  lastCandidateUpdateAt DateTime
+
+  candidate Candidate     @relation(fields: [candidateId], references: [id])
+  role      Role          @relation(fields: [roleId], references: [id])
+  stage     PipelineStage @relation(fields: [stageId], references: [id])
+  source    ExternalSource @relation(fields: [sourceId], references: [id])
+
+  actions        Action[]
+  communications Communication[]
+  interviews     Interview[]
+  auditLogs      AuditLog[]
+}
+
+model Action {
+  id            String @id @default(cuid())
+  applicationId String
+
+  // See ACTION_TYPES in src/lib/types.ts (REMINDER, ESCALATION, SCHEDULING, ...)
+  type            String
+  title           String
+  // Draft message body or proposed change, editable before approval
+  proposedContent String
+  rationale       String
+  // JSON string[] — the facts the recommendation was derived from
+  supportingFacts String
+
+  ownerId     String
+  recipientId String?
+
+  // PROPOSED | APPROVED | IN_PROGRESS | WAITING | COMPLETED | DISMISSED | FAILED
+  status String @default("PROPOSED")
+  // LOW | MEDIUM | HIGH | CRITICAL
+  risk   String @default("LOW")
+  // AUTO | APPROVAL_REQUIRED | SUGGEST_ONLY
+  approvalMode String @default("APPROVAL_REQUIRED")
+  // AGENT | HUMAN
+  createdBy String @default("AGENT")
+
+  dueAt       DateTime
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+  agentRunId  String?
+
+  application Application @relation(fields: [applicationId], references: [id])
+  owner       User        @relation("ActionOwner", fields: [ownerId], references: [id])
+  recipient   User?       @relation("ActionRecipient", fields: [recipientId], references: [id])
+  agentRun    AgentRun?   @relation(fields: [agentRunId], references: [id])
+  auditLogs   AuditLog[]
+}
+
+model ActionRule {
+  id             String @id @default(cuid())
+  organizationId String
+
+  name           String
+  trigger        String
+  // Human-readable condition sentence(s), JSON string[]
+  conditions     String
+  proposedAction String
+  // SUGGEST_ONLY | AUTO_INTERNAL | APPROVAL_REQUIRED | DISABLED
+  mode           String @default("SUGGEST_ONLY")
+  escalationPath String
+  active         Boolean @default(true)
+  // Machine key linking the rule to agent engine logic (e.g. "hm-review-48h")
+  ruleKey        String  @unique
+  slaHours       Int
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+}
+
+model Communication {
+  id            String @id @default(cuid())
+  applicationId String
+  // OUTBOUND | INBOUND | INTERNAL
+  direction     String
+  // EMAIL | SLACK | NOTE | ATS
+  channel       String
+  subject       String
+  body          String
+  sentById      String?
+  sentAt        DateTime
+  candidateFacing Boolean @default(false)
+
+  application Application @relation(fields: [applicationId], references: [id])
+  sentBy      User?       @relation(fields: [sentById], references: [id])
+}
+
+model Interview {
+  id            String    @id @default(cuid())
+  applicationId String
+  name          String
+  // NEEDS_SCHEDULING | SCHEDULED | COMPLETED | CANCELLED
+  status        String
+  scheduledAt   DateTime?
+  durationMins  Int       @default(60)
+
+  application Application         @relation(fields: [applicationId], references: [id])
+  panelists   InterviewPanelist[]
+  feedback    Feedback[]
+}
+
+model InterviewPanelist {
+  interviewId String
+  userId      String
+
+  interview Interview @relation(fields: [interviewId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@id([interviewId, userId])
+}
+
+model Feedback {
+  id            String    @id @default(cuid())
+  interviewId   String
+  interviewerId String
+  // PENDING | SUBMITTED
+  status        String    @default("PENDING")
+  // STRONG_YES | YES | MIXED | NO | STRONG_NO
+  rating        String?
+  summary       String?
+  dueAt         DateTime
+  submittedAt   DateTime?
+
+  interview   Interview @relation(fields: [interviewId], references: [id])
+  interviewer User      @relation(fields: [interviewerId], references: [id])
+}
+
+model Integration {
+  id             String    @id @default(cuid())
+  organizationId String
+  // ATS | EMAIL | CALENDAR | SLACK
+  kind           String
+  provider       String
+  // CONNECTED | DISCONNECTED | ERROR | SYNCING
+  status         String
+  lastSyncAt     DateTime?
+  detail         String?
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+}
+
+model AgentRun {
+  id             String    @id @default(cuid())
+  organizationId String
+  // SCHEDULED | MANUAL
+  trigger        String
+  startedAt      DateTime  @default(now())
+  finishedAt     DateTime?
+  summary        String
+  proposalsCount Int       @default(0)
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  actions      Action[]
+}
+
+model AuditLog {
+  id             String  @id @default(cuid())
+  organizationId String
+  applicationId  String?
+  actionId       String?
+
+  // HUMAN | AGENT | SYSTEM
+  actorType String
+  actorName String
+  // See TIMELINE_EVENT_TYPES in src/lib/types.ts
+  eventType String
+  title     String
+  detail    String?
+  previousState String?
+  newState      String?
+  rationale     String?
+  createdAt DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  application  Application? @relation(fields: [applicationId], references: [id])
+  action       Action?      @relation(fields: [actionId], references: [id])
+}

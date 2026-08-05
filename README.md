@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Relay
 
-## Getting Started
+**The AI hiring execution layer that keeps every candidate moving.**
 
-First, run the development server:
+Traditional applicant tracking systems record where candidates are. Relay sits above them
+(Greenhouse, Ashby, Lever) as the system of *execution*: it identifies the next action for
+every active candidate, assigns an owner and a due date, detects when the process is
+blocked, and recommends — or executes — the action required to move the process forward.
+
+The core invariant: **every active application always has a current stage, a next action,
+an owner, and a due date.** A candidate without a next action is treated as an error state.
+
+## Quick start
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run db:seed   # creates SQLite db, pushes schema, seeds data, runs one agent pass
+npm run dev       # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+No external API keys are required. The prototype uses SQLite via Prisma; the schema is
+PostgreSQL-compatible (see `prisma/schema.prisma` header for the swap procedure).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | What it does |
+|---|---|
+| `npm run dev` | Start the dev server |
+| `npm run build` / `npm start` | Production build / serve |
+| `npm run db:seed` | Reset the database, re-seed, and run an agent pass |
+| `npm run lint` | ESLint |
+| `npx tsc --noEmit` | Typecheck |
 
-## Learn More
+Seed timestamps are relative to *when you seed*, so SLA breaches, overdue actions, and
+momentum states are live immediately. Re-run `npm run db:seed` any time to reset the demo.
 
-To learn more about Next.js, take a look at the following resources:
+## What to look at
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Command Center** (`/`) — blocked and at-risk candidates, why they're blocked, who owns
+  the next action, and what Relay recommends. Approve / Edit / Wait / Dismiss inline.
+- **Candidates** (`/candidates`) — dense sortable table with momentum, next action, owner,
+  due date, risk, and source. Click through to the candidate detail page (overview,
+  timeline, interviews, feedback, communications, applications).
+- **Actions** (`/actions`) — the approval queue: needs approval, waiting on others,
+  escalations, executed, dismissed. Bulk-approve low-risk internal actions.
+- **Automations** (`/automations`) — the SLA rules the agent runs, each with a mode
+  (suggest / auto-internal / approval-required / disabled) and a plain-language rule builder.
+- **Analytics** (`/analytics`) — movement metrics: idle time, blockers over time, overdue
+  actions by owner, stage waits vs SLA, conversion, momentum by role.
+- **Settings** (`/settings`) — mock integration states, stage mapping, SLA policies,
+  roles & permissions, agent permissions, and the full audit log.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The signed-in user is **Sarah Kim (Recruiting Lead)** — the "My actions" filter and all
+human-initiated audit entries use her identity.
 
-## Deploy on Vercel
+## Stack
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Next.js (App Router) · TypeScript · Tailwind CSS · shadcn/ui · Prisma (SQLite →
+PostgreSQL-ready) · Lucide icons · Recharts.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Docs
+
+- [`PRODUCT.md`](./PRODUCT.md) — product thesis and workflow
+- [`ARCHITECTURE.md`](./ARCHITECTURE.md) — system design, agent boundaries, data flow, ATS integration model
+- [`DEMO.md`](./DEMO.md) — five-minute demo script
