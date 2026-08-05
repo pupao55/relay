@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   ArrowRight,
   Check,
@@ -64,6 +64,30 @@ export function HmReviewSheet({
       setNote("");
       showReviewReceipt(r);
     });
+
+  // Keyboard path: A / I / R / D decide directly (ignored while typing a note).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (pending || e.metaKey || e.ctrlKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target && ["TEXTAREA", "INPUT"].includes(target.tagName)) return;
+      const key = e.key.toLowerCase();
+      const map: Record<string, ReviewReceipt["decision"]> = {
+        a: "ADVANCE",
+        i: "REQUEST_INFO",
+        r: "REDIRECT",
+        d: "DECLINE",
+      };
+      if (map[key]) {
+        e.preventDefault();
+        decide(map[key]);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, pending, note, data.applicationId]);
 
   const hits = data.evidence.filter((e) => e.hit);
 
@@ -163,6 +187,7 @@ export function HmReviewSheet({
                   onClick={() => decide("ADVANCE")}
                 >
                   <Check className="size-3.5" /> Advance
+                  <kbd className="ml-auto rounded border border-background/40 px-1 font-mono text-[10px] opacity-70">A</kbd>
                 </Button>
                 <Button
                   size="sm"
@@ -172,6 +197,7 @@ export function HmReviewSheet({
                   onClick={() => decide("REQUEST_INFO")}
                 >
                   <ClipboardList className="size-3.5" /> Request info
+                  <kbd className="ml-auto rounded border border-border px-1 font-mono text-[10px] text-muted-foreground">I</kbd>
                 </Button>
                 <Button
                   size="sm"
@@ -181,6 +207,7 @@ export function HmReviewSheet({
                   onClick={() => decide("REDIRECT")}
                 >
                   <ArrowRight className="size-3.5" /> Redirect
+                  <kbd className="ml-auto rounded border border-border px-1 font-mono text-[10px] text-muted-foreground">R</kbd>
                 </Button>
                 <Button
                   size="sm"
@@ -190,6 +217,7 @@ export function HmReviewSheet({
                   onClick={() => decide("DECLINE")}
                 >
                   <ThumbsDown className="size-3.5" /> Decline
+                  <kbd className="ml-auto rounded border border-border px-1 font-mono text-[10px] text-muted-foreground">D</kbd>
                 </Button>
               </div>
               <p className="mt-2 text-[10.5px] leading-snug text-muted-foreground">

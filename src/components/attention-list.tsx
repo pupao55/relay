@@ -92,26 +92,36 @@ export function AttentionList({
 }) {
   const [filter, setFilter] = useState<FilterKey>("all");
 
+  const matches = (it: AttentionItem, key: FilterKey): boolean => {
+    switch (key) {
+      case "mine":
+        return it.ownerId === currentUserId;
+      case "overdue":
+        return it.overdue;
+      case "risk":
+        return it.state === "AT_RISK";
+      case "hm":
+        return it.blockerType === "HIRING_MANAGER";
+      case "scheduling":
+        return it.blockerType === "SCHEDULING";
+      case "feedback":
+        return it.blockerType === "FEEDBACK";
+      default:
+        return true;
+    }
+  };
+
+  const counts = useMemo(() => {
+    const c = {} as Record<FilterKey, number>;
+    for (const f of FILTERS) c[f.key] = items.filter((it) => matches(it, f.key)).length;
+    return c;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, currentUserId]);
+
   const filtered = useMemo(() => {
-    const f = items.filter((it) => {
-      switch (filter) {
-        case "mine":
-          return it.ownerId === currentUserId;
-        case "overdue":
-          return it.overdue;
-        case "risk":
-          return it.state === "AT_RISK";
-        case "hm":
-          return it.blockerType === "HIRING_MANAGER";
-        case "scheduling":
-          return it.blockerType === "SCHEDULING";
-        case "feedback":
-          return it.blockerType === "FEEDBACK";
-        default:
-          return true;
-      }
-    });
+    const f = items.filter((it) => matches(it, filter));
     return [...f].sort((a, b) => (RISK_ORDER[a.risk] ?? 4) - (RISK_ORDER[b.risk] ?? 4));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, filter, currentUserId]);
 
   const grouped = GROUPS.map((g) => ({
@@ -136,6 +146,11 @@ export function AttentionList({
             )}
           >
             {f.label}
+            {counts[f.key] > 0 && (
+              <span className={cn("ml-1 tabular-nums", filter === f.key ? "opacity-80" : "opacity-60")}>
+                {counts[f.key]}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -162,7 +177,14 @@ export function AttentionList({
                 </span>
               </div>
               <ul className="divide-y divide-border rounded-lg border border-border bg-card">
-                {g.items.map((it) => (
+                {[
+                  ...g.items
+                    .reduce((m, it) => {
+                      m.set(it.candidateId, [...(m.get(it.candidateId) ?? []), it]);
+                      return m;
+                    }, new Map<string, AttentionItem[]>())
+                    .values(),
+                ].map(([it, ...alsoQueued]) => (
                   <li key={it.actionId} className="p-4">
                     {/* Who and where */}
                     <div className="flex flex-wrap items-start justify-between gap-2">
@@ -255,6 +277,38 @@ export function AttentionList({
                       />
                       {it.hmReview && <HmReviewSheet data={it.hmReview} />}
                     </div>
+
+                    {/* One card per candidate: further queued actions ride along. */}
+                    {alsoQueued.length > 0 && (
+                      <div className="mt-2.5 space-y-1.5 border-t border-border pt-2.5">
+                        {alsoQueued.map((s) => (
+                          <div
+                            key={s.actionId}
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-2.5 py-1.5"
+                          >
+                            <p className="min-w-0 text-xs leading-snug">
+                              <span className="text-[10.5px] font-medium uppercase tracking-wide text-muted-foreground">
+                                Also queued:
+                              </span>{" "}
+                              <span className="font-medium">{s.actionTitle}</span>{" "}
+                              <span className={cn("text-muted-foreground", s.overdue && "font-medium text-red-600 dark:text-red-400")}>
+                                · due {s.dueLabel}
+                              </span>
+                            </p>
+                            <ActionControls
+                              action={{
+                                id: s.actionId,
+                                title: s.actionTitle,
+                                proposedContent: s.proposedContent,
+                                status: s.status,
+                                risk: s.risk,
+                              }}
+                              size="xs"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>

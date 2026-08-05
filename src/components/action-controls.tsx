@@ -96,9 +96,9 @@ export function ActionControls({ action, users = [], showComplete = false, size 
             variant="outline"
             className={btnClass}
             disabled={pending}
-            onClick={() => run(() => delayAction(action.id, 24), "Delayed 24 hours")}
+            onClick={() => run(() => delayAction(action.id, 24), "Due date pushed out 24 hours")}
           >
-            <Clock className="size-3" /> Wait
+            <Clock className="size-3" /> Wait 24h
           </Button>
           <Button
             size="sm"

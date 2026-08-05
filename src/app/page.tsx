@@ -12,6 +12,7 @@ import { CURRENT_USER_EMAIL } from "@/lib/current-user";
 import { AttentionList, type AttentionItem } from "@/components/attention-list";
 import type { ExecutionState } from "@/components/status-badges";
 import type { HmReviewData } from "@/components/hm-review-sheet";
+import { ReviewQueueCard, type ReviewQueueItem } from "@/components/review-queue-card";
 import { RunAgentButton } from "@/components/run-agent-button";
 import { ALWAYS_APPROVAL_ACTION_TYPES, type ActionType } from "@/lib/types";
 
@@ -30,7 +31,8 @@ export default async function CommandCenterPage() {
     proposedActions,
     completedAgentActions,
     autoExecutedToday,
-    hmReviewCount,
+    hmQueueApps,
+    waitingActions,
     needsSchedulingCount,
     overdueFeedbackCount,
     lastRun,
@@ -71,8 +73,21 @@ export default async function CommandCenterPage() {
         createdAt: { gte: new Date(now.getTime() - 24 * HOUR) },
       },
     }),
-    db.application.count({
+    db.application.findMany({
       where: { status: "ACTIVE", stage: { name: "Hiring Manager Review" } },
+      include: {
+        candidate: true,
+        source: true,
+        stage: true,
+        role: { include: { hiringManager: true, recruiter: true } },
+      },
+      orderBy: { stageEnteredAt: "asc" },
+    }),
+    db.action.findMany({
+      where: { status: "WAITING", recipientId: { not: null } },
+      include: { recipient: true, application: { include: { candidate: true } } },
+      orderBy: { dueAt: "asc" },
+      take: 4,
     }),
     db.interview.count({
       where: { status: "NEEDS_SCHEDULING", application: { status: "ACTIVE" } },
@@ -94,42 +109,59 @@ export default async function CommandCenterPage() {
     return "MOVING";
   };
 
+  const buildReview = (app: {
+    id: string;
+    stageEnteredAt: Date;
+    candidate: (typeof proposedActions)[number]["application"]["candidate"];
+    source: { name: string };
+    role: { title: string; requiredCriteria: string; hiringManager: { name: string } };
+  }): HmReviewData => {
+    const cand = app.candidate;
+    const strengths: string[] = JSON.parse(cand.strengths);
+    const concerns: string[] = JSON.parse(cand.concerns);
+    const required: string[] = JSON.parse(app.role.requiredCriteria);
+    const profileText = (strengths.join(" ") + " " + cand.summary).toLowerCase();
+    return {
+      applicationId: app.id,
+      candidateName: cand.name,
+      currentTitle: cand.currentTitle,
+      currentCompany: cand.currentCompany,
+      roleTitle: app.role.title,
+      hmName: app.role.hiringManager.name,
+      summary: cand.summary,
+      evidence: required.map((criterion) => ({
+        criterion,
+        hit: criterion
+          .toLowerCase()
+          .split(/[^a-z+]+/)
+          .some((w) => w.length > 3 && profileText.includes(w)),
+      })),
+      primaryConcern: concerns[0] ?? null,
+      timingRisk:
+        cand.competingProcess && cand.competingDeadline
+          ? `${cand.competingProcess} on ${shortDateTime(cand.competingDeadline)}`
+          : null,
+      timeInStage: durationSince(app.stageEnteredAt, now),
+      sourceName: app.source.name,
+    };
+  };
+
+  const reviewQueue: ReviewQueueItem[] = hmQueueApps.map((app) => ({
+    hmName: app.role.hiringManager.name,
+    candidateId: app.candidateId,
+    candidateName: app.candidate.name,
+    roleTitle: app.role.title,
+    waitingLabel: `waiting ${durationSince(app.stageEnteredAt, now)}`,
+    overSla: now.getTime() - app.stageEnteredAt.getTime() > 48 * HOUR,
+    data: buildReview(app),
+  }));
+
   const items: AttentionItem[] = proposedActions.map((a) => {
     const due = dueLabel(a.dueAt, now);
     const app = a.application;
     const cand = app.candidate;
-    const isHmReview = app.stage.name === "Hiring Manager Review";
-
-    let hmReview: HmReviewData | null = null;
-    if (isHmReview) {
-      const strengths: string[] = JSON.parse(cand.strengths);
-      const concerns: string[] = JSON.parse(cand.concerns);
-      const required: string[] = JSON.parse(app.role.requiredCriteria);
-      const profileText = (strengths.join(" ") + " " + cand.summary).toLowerCase();
-      hmReview = {
-        applicationId: app.id,
-        candidateName: cand.name,
-        currentTitle: cand.currentTitle,
-        currentCompany: cand.currentCompany,
-        roleTitle: app.role.title,
-        hmName: app.role.hiringManager.name,
-        summary: cand.summary,
-        evidence: required.map((criterion) => ({
-          criterion,
-          hit: criterion
-            .toLowerCase()
-            .split(/[^a-z+]+/)
-            .some((w) => w.length > 3 && profileText.includes(w)),
-        })),
-        primaryConcern: concerns[0] ?? null,
-        timingRisk:
-          cand.competingProcess && cand.competingDeadline
-            ? `${cand.competingProcess} on ${shortDateTime(cand.competingDeadline)}`
-            : null,
-        timeInStage: durationSince(app.stageEnteredAt, now),
-        sourceName: app.source.name,
-      };
-    }
+    const hmReview: HmReviewData | null =
+      app.stage.name === "Hiring Manager Review" ? buildReview(app) : null;
 
     return {
       actionId: a.id,
@@ -223,7 +255,6 @@ export default async function CommandCenterPage() {
   ];
 
   const brief: { text: string; urgent: boolean }[] = [
-    { text: `${hmReviewCount} candidate${hmReviewCount === 1 ? "" : "s"} waiting on hiring-manager review`, urgent: false },
     { text: `${needsSchedulingCount} interview${needsSchedulingCount === 1 ? " needs" : "s need"} scheduling`, urgent: needsSchedulingCount > 0 },
     { text: `${overdueFeedbackCount} scorecard${overdueFeedbackCount === 1 ? " is" : "s are"} overdue`, urgent: overdueFeedbackCount > 0 },
   ];
@@ -274,7 +305,16 @@ export default async function CommandCenterPage() {
           <AttentionList items={items} currentUserId={currentUser.id} users={users} />
         </section>
 
-        <aside aria-labelledby="brief-heading" className="space-y-4">
+        <aside className="space-y-4">
+          <div>
+            <h2 className="mb-3 text-sm font-semibold">
+              Review queue
+              <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                {reviewQueue.length}
+              </span>
+            </h2>
+            <ReviewQueueCard items={reviewQueue} />
+          </div>
           <div>
             <h2 id="brief-heading" className="mb-3 text-sm font-semibold">
               Today&apos;s execution brief
@@ -293,6 +333,30 @@ export default async function CommandCenterPage() {
                   </li>
                 ))}
               </ul>
+              {waitingActions.length > 0 && (
+                <div className="mt-4 border-t border-border pt-3">
+                  <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Waiting on replies
+                  </div>
+                  <ul className="mt-1.5 space-y-1.5">
+                    {waitingActions.map((w) => {
+                      const d = dueLabel(w.dueAt, now);
+                      return (
+                        <li key={w.id} className="text-xs leading-snug">
+                          <span className="font-medium">{w.recipient!.name}</span>
+                          <span className="text-muted-foreground">
+                            {" "}
+                            · re {w.application.candidate.name.split(" ")[0]} ·{" "}
+                            <span className={d.overdue ? "font-medium text-red-600 dark:text-red-400" : ""}>
+                              {d.overdue ? d.label : `reply due ${d.label}`}
+                            </span>
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
               <div className="mt-4 border-t border-border pt-3">
                 <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                   <Gauge className="size-3.5" /> Idle candidate-days

@@ -64,7 +64,7 @@ check(
   (await mayaCard.locator("text=Blocked:").count()) > 0 &&
     (await mayaCard.locator("text=James Wu").count()) > 0
 );
-await mayaCard.locator("button:has-text('Approve')").click();
+await mayaCard.locator("button:has-text('Approve')").first().click();
 await page.waitForSelector("text=Executed", { timeout: 8000 });
 const receiptText = await page.locator("[role='dialog']").innerText();
 check("execution receipt: action performed", /Action performed/i.test(receiptText));
@@ -127,6 +127,28 @@ check("timeline: next action creation audited", /Created next action/i.test(time
 await shot("05-maya-timeline");
 
 // ---------------------------------------------------------------------------
+// 3b. HM review queue: pre-SLA visibility + keyboard decisions
+// ---------------------------------------------------------------------------
+await page.goto(BASE + "/", { waitUntil: "networkidle" });
+check("review queue card renders", (await page.locator("text=Review queue").count()) > 0);
+// Hannah Goldberg is inside SLA — invisible to the intervention queue, but an
+// HM should still see her waiting.
+const hannahRow = page.locator("li", { has: page.locator("text=Hannah Goldberg") }).first();
+check("in-SLA candidate visible to HM queue", (await hannahRow.count()) === 1);
+await hannahRow.locator("button:has-text('Review')").click();
+await page.waitForTimeout(600);
+check(
+  "sheet shows keyboard hints",
+  (await page.locator("[role='dialog'] kbd").count()) === 4
+);
+await page.keyboard.press("a");
+await page.waitForSelector("text=Advanced", { timeout: 8000 });
+const hannahReceipt = await page.locator("[role='dialog']").innerText();
+check("keyboard Advance works from review queue", /Phone Screen/.test(hannahReceipt));
+await page.locator("[role='dialog'] button:has-text('Done')").click();
+await page.waitForTimeout(1500);
+
+// ---------------------------------------------------------------------------
 // 4. Redirect triage: Sofia Marino -> ML Infrastructure Engineer pipeline
 // ---------------------------------------------------------------------------
 await page.goto(BASE + "/actions", { waitUntil: "networkidle" });
@@ -164,11 +186,11 @@ check("new pipeline has a next action from minute one", /redirected application/
 // 5. Remaining loop mechanics (dismiss, bulk approve, automations, audit)
 // ---------------------------------------------------------------------------
 await page.goto(BASE + "/", { waitUntil: "networkidle" });
-const beforeDismiss = await page.locator("li:has(button:has-text('Approve'))").count();
+const beforeDismiss = await page.locator("button:has-text('Dismiss')").count();
 if (beforeDismiss > 0) {
-  await page.locator("li button:has-text('Dismiss')").first().click();
+  await page.locator("button:has-text('Dismiss')").first().click();
   await page.waitForTimeout(2500);
-  const afterDismiss = await page.locator("li:has(button:has-text('Approve'))").count();
+  const afterDismiss = await page.locator("button:has-text('Dismiss')").count();
   check("dismiss removes item", afterDismiss === beforeDismiss - 1, `${beforeDismiss} -> ${afterDismiss}`);
 } else {
   check("dismiss removes item", true, "skipped — queue empty");

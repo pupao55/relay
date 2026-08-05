@@ -23,9 +23,12 @@ drafted for Maya. Nothing here is a score; everything is a fact with a consequen
 (James Wu), Maya's resulting state (waiting on James, still At Risk), the new next
 action, and the escalation clock now running. Close it — the card has left the queue.
 
-**1:00 — Open Maya's profile → "Review as hiring manager."** This is James's entire
-experience: summary, 4/4 fit against *his* criteria, the one concern (comp at top of
-band), the timing banner, résumé, and four buttons. No ATS navigation, no tabs.
+**1:00 — Point at the Review queue in the right rail.** Every candidate waiting on a
+hiring manager, grouped by manager, *before* the SLA breaches — Hannah Goldberg is only
+20 hours in and already visible. Click **Review** on Maya (or open it from her profile).
+This is James's entire experience: summary, 4/4 fit against *his* criteria, the one
+concern (comp at top of band), the timing banner, résumé, and four buttons — with
+keyboard shortcuts (A / I / R / D). No ATS navigation, no tabs.
 
 **1:20 — Click Advance.** The decision receipt shows the whole state change: Hiring
 Manager Review → Phone Screen, momentum **At Risk → Moving**, and the next action Relay
@@ -50,10 +53,12 @@ doesn't, Relay treats it as an error."
 
 - Run the 2-minute Maya story above.
 - Point out the queue grouping: **withdrawal risk → unowned → blocked → overdue** —
-  urgency order, not stage order.
-- Show the right rail: the execution brief, plus **idle candidate-days** — days
-  candidates sat without activity, and how many of those days completed Relay actions
-  closed out this week.
+  urgency order, not stage order. One card per candidate; further queued actions ride
+  along as "Also queued" rows.
+- Show the right rail: the **Review queue** (every pending HM review, one click to
+  decide), **Waiting on replies** (whose court the ball is in, with reply deadlines),
+  and **idle candidate-days** — days candidates sat without activity, and how many of
+  those days completed Relay actions closed out this week.
 
 ## 2:20 — The error state
 
