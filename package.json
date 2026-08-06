@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "db:seed": "prisma db push && tsx prisma/seed.ts",
-    "test:e2e": "node e2e/smoke.mjs"
+    "test:e2e": "node e2e/smoke.mjs",
+    "db:postgres:schema": "sed 's/provider = \"sqlite\"/provider = \"postgresql\"/' prisma/schema.prisma > prisma/schema.postgres.prisma",
+    "vercel-build": "npm run db:postgres:schema && prisma generate --schema prisma/schema.postgres.prisma && prisma db push --schema prisma/schema.postgres.prisma --accept-data-loss && tsx prisma/seed.ts && next build"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
