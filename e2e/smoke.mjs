@@ -243,7 +243,9 @@ check("new pipeline has a next action from minute one", /redirected application/
 // 4b. Scheduling executes structurally on approve
 // ---------------------------------------------------------------------------
 await page.goto(BASE + "/", { waitUntil: "networkidle" });
-const tomasCard = page.locator("li", { has: page.locator("a", { hasText: "Tomás Silva" }) }).first();
+const tomasCard = page
+  .locator("[data-testid='intervention-row']", { hasText: "Tomás Silva" })
+  .first();
 if (await tomasCard.count()) {
   // Row-level approve — no need to open the spotlight first.
   await tomasCard.locator("button:has-text('Approve')").first().click();
