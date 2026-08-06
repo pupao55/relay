@@ -55,8 +55,8 @@ export default async function RolesPage() {
   return (
     <div>
       <div className="mb-5">
-        <h1 className="text-lg font-semibold tracking-tight">Roles</h1>
-        <p className="text-[13px] text-muted-foreground">
+        <h1 className="text-xl font-semibold tracking-tight">Roles</h1>
+        <p className="text-sm text-muted-foreground">
           Open roles with pipeline health and unresolved work.
         </p>
       </div>
@@ -66,36 +66,36 @@ export default async function RolesPage() {
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               {["Role", "Department", "Recruiter", "Hiring Manager", "Priority", "Active", "Blocked", "Avg Idle", "Oldest Unresolved Action"].map((h) => (
-                <TableHead key={h} className="h-8 text-[11.5px] font-medium">{h}</TableHead>
+                <TableHead key={h} className="h-8 text-xs font-medium">{h}</TableHead>
               ))}
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.map(({ r, active, blocked, avgIdleHours, oldest }) => (
-              <TableRow key={r.id} className="text-[13px]">
+              <TableRow key={r.id} className="text-sm">
                 <TableCell className="py-2.5">
                   <Link href={`/roles/${r.id}`} className="font-medium hover:underline">
                     {r.title}
                   </Link>
-                  <div className="text-[11px] text-muted-foreground">{r.location}</div>
+                  <div className="text-xs text-muted-foreground">{r.location}</div>
                 </TableCell>
                 <TableCell className="py-2.5 text-muted-foreground">{r.department}</TableCell>
                 <TableCell className="py-2.5">
                   <span className="flex items-center gap-1.5">
                     <UserAvatar name={r.recruiter.name} size="sm" />
-                    <span className="text-xs">{r.recruiter.name}</span>
+                    <span className="text-[13px]">{r.recruiter.name}</span>
                   </span>
                 </TableCell>
                 <TableCell className="py-2.5">
                   <span className="flex items-center gap-1.5">
                     <UserAvatar name={r.hiringManager.name} size="sm" />
-                    <span className="text-xs">{r.hiringManager.name}</span>
+                    <span className="text-[13px]">{r.hiringManager.name}</span>
                   </span>
                 </TableCell>
                 <TableCell className="py-2.5">
                   <span
                     className={cn(
-                      "rounded border px-1.5 py-0.5 text-[11px] font-medium",
+                      "rounded border px-1.5 py-0.5 text-xs font-medium",
                       (PRIORITY_META[r.priority] ?? PRIORITY_META.STANDARD).className
                     )}
                   >
@@ -118,14 +118,14 @@ export default async function RolesPage() {
                 </TableCell>
                 <TableCell className="max-w-[260px] py-2.5">
                   {oldest ? (
-                    <span className="line-clamp-1 text-xs">
+                    <span className="line-clamp-1 text-[13px]">
                       {oldest.title}{" "}
                       <span className="text-muted-foreground">
                         · open {durationSince(oldest.createdAt, now)}
                       </span>
                     </span>
                   ) : (
-                    <span className="text-xs text-muted-foreground">None</span>
+                    <span className="text-[13px] text-muted-foreground">None</span>
                   )}
                 </TableCell>
               </TableRow>

@@ -27,11 +27,11 @@ export function NoteForm({ applicationId }: { applicationId: string }) {
         onChange={(e) => setBody(e.target.value)}
         placeholder="Add an internal note… (visible to the team, logged to the timeline)"
         rows={2}
-        className="text-[13px]"
+        className="text-sm"
         aria-label="Add note"
       />
       <div className="flex justify-end">
-        <Button type="submit" size="sm" variant="outline" className="h-7 text-xs" disabled={pending || !body.trim()}>
+        <Button type="submit" size="sm" variant="outline" className="h-7 text-[13px]" disabled={pending || !body.trim()}>
           Add note
         </Button>
       </div>

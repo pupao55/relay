@@ -292,7 +292,7 @@ export default async function CommandCenterPage() {
     <div>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold tracking-tight">
+          <h1 className="text-xl font-semibold tracking-tight">
             {interventionCandidates.size > 0 ? (
               <>
                 {interventionCandidates.size} candidate
@@ -302,7 +302,7 @@ export default async function CommandCenterPage() {
               "Every candidate is owned and moving"
             )}
           </h1>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {activeApps.length} active candidates — every one has a next action, an owner, and a
             due date. These are the ones where the clock is losing.
           </p>
@@ -312,13 +312,13 @@ export default async function CommandCenterPage() {
 
       <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {tiles.map((t) => (
-          <div key={t.label} className="rounded-lg border border-border bg-card px-3.5 py-3">
-            <div className="flex items-center gap-1.5 text-[11.5px] font-medium text-muted-foreground">
+          <div key={t.label} className="rounded-lg border border-border bg-card p-4">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <t.icon className={`size-3.5 ${t.tone}`} strokeWidth={1.75} />
               {t.label}
             </div>
-            <div className="mt-1 text-xl font-semibold tabular-nums tracking-tight">{t.value}</div>
-            <div className="mt-0.5 text-[10.5px] leading-snug text-muted-foreground">{t.sub}</div>
+            <div className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">{t.value}</div>
+            <div className="mt-0.5 text-xs leading-snug text-muted-foreground">{t.sub}</div>
           </div>
         ))}
       </div>
@@ -327,7 +327,7 @@ export default async function CommandCenterPage() {
         <section aria-labelledby="attention-heading">
           <h2 id="attention-heading" className="mb-3 text-sm font-semibold">
             Interventions
-            <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+            <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
               {items.length}
             </span>
           </h2>
@@ -338,7 +338,7 @@ export default async function CommandCenterPage() {
           <div>
             <h2 className="mb-3 text-sm font-semibold">
               Review queue
-              <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+              <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                 {reviewQueue.length}
               </span>
             </h2>
@@ -351,7 +351,7 @@ export default async function CommandCenterPage() {
             <div className="rounded-lg border border-border bg-card p-4">
               <ul className="space-y-2.5">
                 {brief.map((b) => (
-                  <li key={b.text} className="flex items-start gap-2 text-[13px] leading-snug">
+                  <li key={b.text} className="flex items-start gap-2 text-sm leading-snug">
                     <span
                       className={`mt-1.5 size-1.5 shrink-0 rounded-full ${
                         b.urgent ? "bg-red-500" : "bg-neutral-300 dark:bg-neutral-600"
@@ -364,14 +364,14 @@ export default async function CommandCenterPage() {
               </ul>
               {waitingActions.length > 0 && (
                 <div className="mt-4 border-t border-border pt-3">
-                  <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Waiting on replies
                   </div>
                   <ul className="mt-1.5 space-y-1">
                     {waitingActions.map((w) => {
                       const d = dueLabel(w.dueAt, now);
                       return (
-                        <li key={w.id} className="flex items-baseline gap-2 text-xs leading-snug">
+                        <li key={w.id} className="flex items-baseline gap-2 text-[13px] leading-snug">
                           <span className="w-24 shrink-0 truncate font-medium">
                             {w.recipient!.name}
                           </span>
@@ -395,36 +395,36 @@ export default async function CommandCenterPage() {
                 </div>
               )}
               <div className="mt-4 border-t border-border pt-3">
-                <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   <Gauge className="size-3.5" /> Idle candidate-days
                 </div>
                 <div className="mt-1.5 flex items-baseline gap-3">
                   <div>
-                    <div className="text-lg font-semibold tabular-nums">{idleDaysOutstanding}</div>
-                    <div className="text-[10.5px] text-muted-foreground">outstanding now</div>
+                    <div className="text-xl font-semibold tabular-nums">{idleDaysOutstanding}</div>
+                    <div className="text-xs text-muted-foreground">outstanding now</div>
                   </div>
                   <div>
-                    <div className="text-lg font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                    <div className="text-xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
                       {idleDaysResolved}
                     </div>
-                    <div className="text-[10.5px] text-muted-foreground">resolved this week</div>
+                    <div className="text-xs text-muted-foreground">resolved this week</div>
                   </div>
                 </div>
-                <p className="mt-1.5 text-[10.5px] leading-snug text-muted-foreground">
+                <p className="mt-1.5 text-xs leading-snug text-muted-foreground">
                   Days candidates have sat without activity; resolved = blocker age closed out by
                   completed Relay actions. Full formula in Analytics.
                 </p>
               </div>
               <div className="mt-4 border-t border-border pt-3">
-                <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   <CalendarClock className="size-3.5" /> Last agent pass
                 </div>
                 {lastRun ? (
-                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                  <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
                     {shortDateTime(lastRun.startedAt)} — {lastRun.summary}
                   </p>
                 ) : (
-                  <p className="mt-1.5 text-xs text-muted-foreground">No agent pass yet.</p>
+                  <p className="mt-1.5 text-[13px] text-muted-foreground">No agent pass yet.</p>
                 )}
               </div>
             </div>

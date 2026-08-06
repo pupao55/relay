@@ -12,7 +12,7 @@ export function UserAvatar({
 }) {
   const sizes = {
     sm: "size-5 text-[9px]",
-    md: "size-7 text-[11px]",
+    md: "size-7 text-xs",
     lg: "size-10 text-sm",
   };
   return (

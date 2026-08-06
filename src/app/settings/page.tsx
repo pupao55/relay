@@ -82,8 +82,8 @@ export default async function SettingsPage() {
   return (
     <div>
       <div className="mb-5">
-        <h1 className="text-lg font-semibold tracking-tight">Settings</h1>
-        <p className="text-[13px] text-muted-foreground">
+        <h1 className="text-xl font-semibold tracking-tight">Settings</h1>
+        <p className="text-sm text-muted-foreground">
           Integrations, policies, permissions, and the audit trail.
         </p>
       </div>
@@ -98,7 +98,7 @@ export default async function SettingsPage() {
             ["agent", "Agent Permissions"],
             ["audit", "Audit Logs"],
           ].map(([v, l]) => (
-            <TabsTrigger key={v} value={v} className="px-3 text-xs">
+            <TabsTrigger key={v} value={v} className="px-3 text-[13px]">
               {l}
             </TabsTrigger>
           ))}
@@ -117,18 +117,18 @@ export default async function SettingsPage() {
                         <Icon className="size-4 text-muted-foreground" />
                       </div>
                       <div>
-                        <div className="text-[13px] font-semibold">{i.provider}</div>
-                        <div className="text-[11px] text-muted-foreground">
+                        <div className="text-sm font-semibold">{i.provider}</div>
+                        <div className="text-xs text-muted-foreground">
                           {i.kind === "ATS" ? "Applicant tracking" : i.kind.charAt(0) + i.kind.slice(1).toLowerCase()}
                         </div>
                       </div>
                     </div>
-                    <span className={`rounded border px-1.5 py-0.5 text-[11px] font-medium ${meta.className}`}>
+                    <span className={`rounded border px-1.5 py-0.5 text-xs font-medium ${meta.className}`}>
                       {meta.label}
                     </span>
                   </div>
-                  <p className="mt-2.5 text-xs leading-relaxed text-muted-foreground">{i.detail}</p>
-                  <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+                  <p className="mt-2.5 text-[13px] leading-relaxed text-muted-foreground">{i.detail}</p>
+                  <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                     <span>
                       {i.lastSyncAt ? `Last sync ${durationSince(i.lastSyncAt, now)} ago` : "Never synced"}
                     </span>
@@ -147,9 +147,9 @@ export default async function SettingsPage() {
 
         <TabsContent value="stages" className="mt-4">
           <div className="overflow-hidden rounded-lg border border-border bg-card">
-            <table className="w-full text-[13px]">
+            <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left text-[11.5px] text-muted-foreground">
+                <tr className="border-b border-border text-left text-xs text-muted-foreground">
                   <th className="px-4 py-2 font-medium">Relay stage</th>
                   <th className="px-4 py-2 font-medium">Greenhouse stage</th>
                   <th className="px-4 py-2 font-medium">Sync</th>
@@ -161,7 +161,7 @@ export default async function SettingsPage() {
                     <td className="px-4 py-2 font-medium">{m.relay}</td>
                     <td className="px-4 py-2 text-muted-foreground">{m.greenhouse}</td>
                     <td className="px-4 py-2">
-                      <span className="flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-400">
+                      <span className="flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-400">
                         <Check className="size-3" /> Two-way
                       </span>
                     </td>
@@ -170,16 +170,16 @@ export default async function SettingsPage() {
               </tbody>
             </table>
           </div>
-          <p className="mt-2 text-[11px] text-muted-foreground">
+          <p className="mt-2 text-xs text-muted-foreground">
             Stage changes in either system reconcile within one sync cycle (~2 min).
           </p>
         </TabsContent>
 
         <TabsContent value="sla" className="mt-4">
           <div className="overflow-hidden rounded-lg border border-border bg-card">
-            <table className="w-full text-[13px]">
+            <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left text-[11.5px] text-muted-foreground">
+                <tr className="border-b border-border text-left text-xs text-muted-foreground">
                   <th className="px-4 py-2 font-medium">Policy</th>
                   <th className="px-4 py-2 font-medium">SLA</th>
                   <th className="px-4 py-2 font-medium">Escalation path</th>
@@ -202,9 +202,9 @@ export default async function SettingsPage() {
 
         <TabsContent value="permissions" className="mt-4">
           <div className="overflow-hidden rounded-lg border border-border bg-card">
-            <table className="w-full text-[13px]">
+            <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left text-[11.5px] text-muted-foreground">
+                <tr className="border-b border-border text-left text-xs text-muted-foreground">
                   <th className="px-4 py-2 font-medium">User</th>
                   <th className="px-4 py-2 font-medium">Role</th>
                   <th className="hidden px-4 py-2 font-medium md:table-cell">Permissions</th>
@@ -218,14 +218,14 @@ export default async function SettingsPage() {
                         <UserAvatar name={u.name} size="sm" />
                         <span>
                           <span className="font-medium">{u.name}</span>{" "}
-                          <span className="text-[11px] text-muted-foreground">· {u.title}</span>
+                          <span className="text-xs text-muted-foreground">· {u.title}</span>
                         </span>
                       </span>
                     </td>
-                    <td className="px-4 py-2 text-xs text-muted-foreground">
+                    <td className="px-4 py-2 text-[13px] text-muted-foreground">
                       {roleLabel[u.userRole] ?? u.userRole}
                     </td>
-                    <td className="hidden px-4 py-2 text-[11px] text-muted-foreground md:table-cell">
+                    <td className="hidden px-4 py-2 text-xs text-muted-foreground md:table-cell">
                       {rolePermissions[u.userRole]}
                     </td>
                   </tr>
@@ -238,7 +238,7 @@ export default async function SettingsPage() {
         <TabsContent value="agent" className="mt-4">
           <div className="mb-3 flex items-start gap-2 rounded-lg border border-border bg-muted/40 p-3">
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-emerald-600" />
-            <p className="text-xs leading-relaxed text-muted-foreground">
+            <p className="text-[13px] leading-relaxed text-muted-foreground">
               The agent may execute <span className="font-medium text-foreground">low-risk internal actions</span> automatically
               when a rule allows it. Candidate-facing, offer-related, and rejection actions{" "}
               <span className="font-medium text-foreground">always require human approval</span>, regardless of automation mode.
@@ -249,11 +249,11 @@ export default async function SettingsPage() {
             {AGENT_PERMISSIONS.map((p) => (
               <li key={p.action} className="flex items-center justify-between gap-4 px-4 py-2.5">
                 <div>
-                  <div className="text-[13px] font-medium">{p.action}</div>
-                  <div className="text-[11px] text-muted-foreground">{p.note}</div>
+                  <div className="text-sm font-medium">{p.action}</div>
+                  <div className="text-xs text-muted-foreground">{p.note}</div>
                 </div>
                 <span
-                  className={`shrink-0 rounded border px-1.5 py-0.5 text-[11px] font-medium ${
+                  className={`shrink-0 rounded border px-1.5 py-0.5 text-xs font-medium ${
                     p.allowed
                       ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400"
                       : "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400"
@@ -281,13 +281,13 @@ export default async function SettingsPage() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-baseline gap-x-2">
-                    <span className="text-[13px] font-medium leading-snug">{l.title}</span>
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="text-sm font-medium leading-snug">{l.title}</span>
+                    <span className="text-xs text-muted-foreground">
                       {l.actorName} ({l.actorType.toLowerCase()}) · {shortDateTime(l.createdAt)}
                     </span>
                   </div>
                   {l.previousState && l.newState && l.previousState !== l.newState && (
-                    <div className="mt-0.5 text-[11px] text-muted-foreground">
+                    <div className="mt-0.5 text-xs text-muted-foreground">
                       <span className="line-clamp-1">
                         {l.previousState.length > 60 ? l.previousState.slice(0, 60) + "…" : l.previousState}
                         {" → "}
@@ -296,7 +296,7 @@ export default async function SettingsPage() {
                     </div>
                   )}
                   {l.rationale && (
-                    <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-muted-foreground">
+                    <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-muted-foreground">
                       {l.rationale}
                     </p>
                   )}

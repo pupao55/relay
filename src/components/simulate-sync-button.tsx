@@ -12,7 +12,7 @@ export function SimulateSyncButton() {
     <Button
       size="sm"
       variant="outline"
-      className="h-6 gap-1 px-2 text-[11px]"
+      className="h-6 gap-1 px-2 text-xs"
       disabled={pending}
       onClick={() =>
         startTransition(async () => {

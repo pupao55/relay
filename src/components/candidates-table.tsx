@@ -119,7 +119,7 @@ export function CandidatesTable({
   };
 
   const sortHeader = (label: string, k: SortKey, className?: string) => (
-    <TableHead key={label} className={cn("h-8 text-[11.5px]", className)}>
+    <TableHead key={label} className={cn("h-8 text-xs", className)}>
       <button
         type="button"
         onClick={() => toggleSort(k)}
@@ -154,7 +154,7 @@ export function CandidatesTable({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search candidates…"
-            className="h-8 w-56 pl-8 text-[13px]"
+            className="h-8 w-56 pl-8 text-sm"
             aria-label="Search candidates"
           />
         </div>
@@ -163,7 +163,7 @@ export function CandidatesTable({
             <SelectTrigger
               size="sm"
               className={cn(
-                "h-8 gap-1 text-xs",
+                "h-8 gap-1 text-[13px]",
                 value !== "all" && "border-foreground/40"
               )}
               aria-label={`Filter by ${label.toLowerCase()}`}
@@ -195,12 +195,12 @@ export function CandidatesTable({
               {sortHeader("Role", "role")}
               {sortHeader("Stage", "stage")}
               {sortHeader("Momentum", "momentum")}
-              <TableHead className="h-8 text-[11.5px] font-medium">Next Action</TableHead>
-              <TableHead className="h-8 text-[11.5px] font-medium">Owner</TableHead>
+              <TableHead className="h-8 text-xs font-medium">Next Action</TableHead>
+              <TableHead className="h-8 text-xs font-medium">Owner</TableHead>
               {sortHeader("Due", "due")}
               {sortHeader("In Stage", "timeInStage")}
               {sortHeader("Risk", "risk")}
-              <TableHead className="h-8 text-[11.5px] font-medium">Source</TableHead>
+              <TableHead className="h-8 text-xs font-medium">Source</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -209,7 +209,7 @@ export function CandidatesTable({
                 <TableCell colSpan={10} className="py-14 text-center">
                   <SearchX className="mx-auto mb-2 size-5 text-muted-foreground" />
                   <p className="text-sm font-medium">No candidates match</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
+                  <p className="mt-0.5 text-[13px] text-muted-foreground">
                     Adjust the filters or clear the search.
                   </p>
                 </TableCell>
@@ -218,7 +218,7 @@ export function CandidatesTable({
               filtered.map((r) => (
                 <TableRow
                   key={r.applicationId}
-                  className="cursor-pointer text-[13px]"
+                  className="cursor-pointer text-sm"
                   onClick={() => router.push(`/candidates/${r.candidateId}`)}
                 >
                   <TableCell className="py-2">
@@ -232,7 +232,7 @@ export function CandidatesTable({
                         >
                           {r.name}
                         </Link>
-                        <div className="text-[11px] text-muted-foreground">{r.company}</div>
+                        <div className="text-xs text-muted-foreground">{r.company}</div>
                       </div>
                     </div>
                   </TableCell>
@@ -241,7 +241,7 @@ export function CandidatesTable({
                     {r.status === "ACTIVE" ? (
                       <StageBadge name={r.stageName} />
                     ) : (
-                      <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                      <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
                         {r.status.charAt(0) + r.status.slice(1).toLowerCase()}
                       </span>
                     )}
@@ -262,13 +262,13 @@ export function CandidatesTable({
                     {r.ownerName ? (
                       <span className="flex items-center gap-1.5">
                         <UserAvatar name={r.ownerName} size="sm" />
-                        <span className="text-xs">{r.ownerName.split(" ")[0]}</span>
+                        <span className="text-[13px]">{r.ownerName.split(" ")[0]}</span>
                       </span>
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
                   </TableCell>
-                  <TableCell className="py-2 text-xs">
+                  <TableCell className="py-2 text-[13px]">
                     {r.dueLabel ? (
                       <span className={cn(r.dueOverdue && "font-medium text-red-600 dark:text-red-400")}>
                         {r.dueLabel}
@@ -277,7 +277,7 @@ export function CandidatesTable({
                       <span className="text-muted-foreground">—</span>
                     )}
                   </TableCell>
-                  <TableCell className="py-2 text-xs tabular-nums text-muted-foreground">
+                  <TableCell className="py-2 text-[13px] tabular-nums text-muted-foreground">
                     {r.status === "ACTIVE" ? r.timeInStage : "—"}
                   </TableCell>
                   <TableCell className="py-2">
@@ -292,7 +292,7 @@ export function CandidatesTable({
           </TableBody>
         </Table>
       </div>
-      <p className="mt-2 text-[11px] text-muted-foreground">
+      <p className="mt-2 text-xs text-muted-foreground">
         {filtered.length} of {rows.length} candidates
       </p>
     </div>

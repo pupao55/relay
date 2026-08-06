@@ -61,7 +61,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
             onClick={onNavigate}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors",
+              "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors",
               active
                 ? "bg-accent text-accent-foreground"
                 : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
@@ -104,8 +104,8 @@ function PersonaSwitcher({
         >
           <UserAvatar name={currentUser.name} />
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[13px] font-medium">{currentUser.name}</span>
-            <span className="block truncate text-[11px] text-muted-foreground">
+            <span className="block truncate text-sm font-medium">{currentUser.name}</span>
+            <span className="block truncate text-xs text-muted-foreground">
               {currentUser.title}
             </span>
           </span>
@@ -113,25 +113,25 @@ function PersonaSwitcher({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
-        <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">
+        <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
           Recruiters
         </DropdownMenuLabel>
         {recruiters.map((p) => (
-          <DropdownMenuItem key={p.id} onClick={() => pick(p)} className="gap-2 text-xs">
+          <DropdownMenuItem key={p.id} onClick={() => pick(p)} className="gap-2 text-[13px]">
             <UserAvatar name={p.name} size="sm" />
             <span className="flex-1">{p.name}</span>
-            {p.id === currentUser.id && <span className="text-[10px] text-muted-foreground">current</span>}
+            {p.id === currentUser.id && <span className="text-[11px] text-muted-foreground">current</span>}
           </DropdownMenuItem>
         ))}
         <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">
+        <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
           Hiring managers
         </DropdownMenuLabel>
         {hms.map((p) => (
-          <DropdownMenuItem key={p.id} onClick={() => pick(p)} className="gap-2 text-xs">
+          <DropdownMenuItem key={p.id} onClick={() => pick(p)} className="gap-2 text-[13px]">
             <UserAvatar name={p.name} size="sm" />
             <span className="flex-1">{p.name}</span>
-            {p.id === currentUser.id && <span className="text-[10px] text-muted-foreground">current</span>}
+            {p.id === currentUser.id && <span className="text-[11px] text-muted-foreground">current</span>}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>
@@ -155,7 +155,7 @@ function SidebarContent({
           <Zap className="size-3.5 text-background" strokeWidth={2.25} />
         </div>
         <span className="text-sm font-semibold tracking-tight">Relay</span>
-        <span className="ml-auto rounded border border-border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        <span className="ml-auto rounded border border-border px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
           Helios
         </span>
       </div>

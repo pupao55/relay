@@ -53,7 +53,7 @@ export function ActionControls({ action, users = [], showComplete = false, size 
   const [title, setTitle] = useState(action.title);
   const [content, setContent] = useState(action.proposedContent);
 
-  const btnClass = size === "xs" ? "h-6 px-2 text-[11px]" : "h-7 px-2.5 text-xs";
+  const btnClass = size === "xs" ? "h-6 px-2 text-xs" : "h-7 px-2.5 text-[13px]";
   const isOpen = ["PROPOSED", "APPROVED", "IN_PROGRESS", "WAITING"].includes(action.status);
   const isProposed = action.status === "PROPOSED";
 
@@ -168,7 +168,7 @@ export function ActionControls({ action, users = [], showComplete = false, size 
                 rows={7}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                className="text-[13px] leading-relaxed"
+                className="text-sm leading-relaxed"
               />
             </div>
           </div>

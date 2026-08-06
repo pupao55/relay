@@ -85,19 +85,19 @@ export default async function RoleDetailPage({
     <div>
       <Link
         href="/roles"
-        className="mb-4 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+        className="mb-4 inline-flex items-center gap-1 text-[13px] text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-3.5" /> Roles
       </Link>
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold tracking-tight">{role.title}</h1>
-          <p className="text-[13px] text-muted-foreground">
+          <h1 className="text-xl font-semibold tracking-tight">{role.title}</h1>
+          <p className="text-sm text-muted-foreground">
             {role.department} · {role.location} · open {durationSince(role.openedAt, now)}
           </p>
         </div>
-        <div className="flex items-center gap-4 text-xs">
+        <div className="flex items-center gap-4 text-[13px]">
           <span className="flex items-center gap-1.5">
             <UserAvatar name={role.recruiter.name} size="sm" />
             <span>
@@ -118,24 +118,24 @@ export default async function RoleDetailPage({
       <div className="mt-5 grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <section className="rounded-lg border border-border bg-card p-4">
-            <h2 className="text-[13px] font-semibold">Hiring brief</h2>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-foreground/90">{role.hiringBrief}</p>
+            <h2 className="text-sm font-semibold">Hiring brief</h2>
+            <p className="mt-1.5 text-sm leading-relaxed text-foreground/90">{role.hiringBrief}</p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <div>
-                <h3 className="text-xs font-medium text-muted-foreground">Required</h3>
+                <h3 className="text-[13px] font-medium text-muted-foreground">Required</h3>
                 <ul className="mt-1.5 space-y-1">
                   {required.map((c) => (
-                    <li key={c} className="flex items-start gap-1.5 text-xs leading-snug">
+                    <li key={c} className="flex items-start gap-1.5 text-[13px] leading-snug">
                       <Check className="mt-0.5 size-3 shrink-0 text-emerald-600" /> {c}
                     </li>
                   ))}
                 </ul>
               </div>
               <div>
-                <h3 className="text-xs font-medium text-muted-foreground">Preferred</h3>
+                <h3 className="text-[13px] font-medium text-muted-foreground">Preferred</h3>
                 <ul className="mt-1.5 space-y-1">
                   {preferred.map((c) => (
-                    <li key={c} className="flex items-start gap-1.5 text-xs leading-snug">
+                    <li key={c} className="flex items-start gap-1.5 text-[13px] leading-snug">
                       <Star className="mt-0.5 size-3 shrink-0 text-amber-500" /> {c}
                     </li>
                   ))}
@@ -145,13 +145,13 @@ export default async function RoleDetailPage({
           </section>
 
           <section className="rounded-lg border border-border bg-card p-4">
-            <h2 className="text-[13px] font-semibold">Pipeline</h2>
+            <h2 className="text-sm font-semibold">Pipeline</h2>
             <div className="mt-3 space-y-3">
               {pipeline.map(({ stage, apps }) => (
                 <div key={stage.id}>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium">{stage.name}</span>
-                    <span className="text-[11px] tabular-nums text-muted-foreground">
+                    <span className="text-[13px] font-medium">{stage.name}</span>
+                    <span className="text-xs tabular-nums text-muted-foreground">
                       {apps.length} candidate{apps.length === 1 ? "" : "s"} · SLA {stage.slaHours}h
                     </span>
                   </div>
@@ -166,13 +166,13 @@ export default async function RoleDetailPage({
                             <UserAvatar name={a.candidate.name} size="sm" />
                             <Link
                               href={`/candidates/${a.candidate.id}`}
-                              className="text-xs font-medium hover:underline"
+                              className="text-[13px] font-medium hover:underline"
                             >
                               {a.candidate.name}
                             </Link>
                             <MomentumBadge momentum={a.momentum} />
                           </span>
-                          <span className="text-[11px] tabular-nums text-muted-foreground">
+                          <span className="text-xs tabular-nums text-muted-foreground">
                             {durationSince(a.stageEnteredAt, now)} in stage
                           </span>
                         </li>
@@ -182,7 +182,7 @@ export default async function RoleDetailPage({
                 </div>
               ))}
               {active.length === 0 && (
-                <p className="rounded-md border border-dashed border-border py-6 text-center text-xs text-muted-foreground">
+                <p className="rounded-md border border-dashed border-border py-6 text-center text-[13px] text-muted-foreground">
                   No active candidates in this pipeline.
                 </p>
               )}
@@ -192,13 +192,13 @@ export default async function RoleDetailPage({
 
         <div className="space-y-4">
           <section className="rounded-lg border border-border bg-card p-4">
-            <h2 className="text-[13px] font-semibold">Common blockers</h2>
+            <h2 className="text-sm font-semibold">Common blockers</h2>
             {blockers.length === 0 ? (
-              <p className="mt-2 text-xs text-muted-foreground">No active blockers. Pipeline is healthy.</p>
+              <p className="mt-2 text-[13px] text-muted-foreground">No active blockers. Pipeline is healthy.</p>
             ) : (
               <ul className="mt-2 space-y-1.5">
                 {blockers.map(([type, count]) => (
-                  <li key={type} className="flex items-center justify-between text-xs">
+                  <li key={type} className="flex items-center justify-between text-[13px]">
                     <span className="flex items-center gap-1.5">
                       <CircleAlert className="size-3 text-red-500" />
                       {BLOCKER_LABELS[type as BlockerType] ?? type}
@@ -211,11 +211,11 @@ export default async function RoleDetailPage({
           </section>
 
           <section className="rounded-lg border border-border bg-card p-4">
-            <h2 className="text-[13px] font-semibold">Team response times</h2>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">Median hours to respond to requests</p>
+            <h2 className="text-sm font-semibold">Team response times</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">Median hours to respond to requests</p>
             <ul className="mt-2.5 space-y-2">
               {team.map((t) => (
-                <li key={t.name} className="text-xs">
+                <li key={t.name} className="text-[13px]">
                   <div className="flex items-center justify-between">
                     <span>
                       <span className="font-medium">{t.name}</span>{" "}
@@ -237,13 +237,13 @@ export default async function RoleDetailPage({
           </section>
 
           <section className="rounded-lg border border-border bg-card p-4">
-            <h2 className="text-[13px] font-semibold">Recommended interventions</h2>
+            <h2 className="text-sm font-semibold">Recommended interventions</h2>
             {interventions.length === 0 ? (
-              <p className="mt-2 text-xs text-muted-foreground">Nothing pending — Relay has no open proposals for this role.</p>
+              <p className="mt-2 text-[13px] text-muted-foreground">Nothing pending — Relay has no open proposals for this role.</p>
             ) : (
               <ul className="mt-2 space-y-2.5">
                 {interventions.map((x) => (
-                  <li key={x.id} className="text-xs leading-snug">
+                  <li key={x.id} className="text-[13px] leading-snug">
                     <div className="flex items-start gap-1.5">
                       <ArrowRight className="mt-0.5 size-3 shrink-0 text-blue-600 dark:text-blue-400" />
                       <div>

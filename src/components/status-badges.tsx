@@ -11,7 +11,7 @@ import {
 } from "@/lib/types";
 
 const base =
-  "inline-flex items-center gap-1.5 rounded border px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap";
+  "inline-flex items-center gap-1.5 rounded border px-1.5 py-0.5 text-xs font-medium whitespace-nowrap";
 
 export function MomentumBadge({ momentum, className }: { momentum: string; className?: string }) {
   const meta = MOMENTUM_META[momentum as Momentum] ?? MOMENTUM_META.MOVING;

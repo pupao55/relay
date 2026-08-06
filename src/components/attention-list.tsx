@@ -150,7 +150,7 @@ export function AttentionList({
             onClick={() => setFilter(f.key)}
             aria-pressed={filter === f.key}
             className={cn(
-              "rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors",
+              "rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
               filter === f.key
                 ? "border-foreground bg-foreground text-background"
                 : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
@@ -170,7 +170,7 @@ export function AttentionList({
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-14 text-center">
           <Inbox className="mb-2 size-5 text-muted-foreground" />
           <p className="text-sm font-medium">No interventions needed</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
+          <p className="mt-0.5 text-[13px] text-muted-foreground">
             {filter === "all"
               ? "Every active candidate is owned, in SLA, and moving."
               : "No candidates match this filter."}
@@ -182,8 +182,8 @@ export function AttentionList({
             <section key={g.state} aria-label={g.title}>
               <div className="mb-1.5 flex items-baseline gap-2">
                 <StateBadge state={g.state} />
-                <h3 className="text-[13px] font-semibold">{g.title}</h3>
-                <span className="text-[11px] tabular-nums text-muted-foreground">
+                <h3 className="text-sm font-semibold">{g.title}</h3>
+                <span className="text-xs tabular-nums text-muted-foreground">
                   {g.cards.length}
                 </span>
               </div>
@@ -208,7 +208,7 @@ export function AttentionList({
                           }
                         }}
                         className={cn(
-                          "flex cursor-pointer items-center gap-2.5 px-3 py-2 transition-colors hover:bg-muted/40",
+                          "flex cursor-pointer items-center gap-2.5 px-3.5 py-2.5 transition-colors hover:bg-muted/40",
                           expanded && "bg-muted/30"
                         )}
                       >
@@ -223,32 +223,32 @@ export function AttentionList({
                         <Link
                           href={`/candidates/${it.candidateId}`}
                           onClick={(e) => e.stopPropagation()}
-                          className="w-32 shrink-0 truncate text-[13px] font-semibold hover:underline"
+                          className="w-32 shrink-0 truncate text-sm font-semibold hover:underline"
                           title={it.candidateName}
                         >
                           {it.candidateName}
                         </Link>
                         <span
-                          className="hidden w-44 shrink-0 truncate text-[11px] text-muted-foreground lg:inline"
+                          className="hidden w-44 shrink-0 truncate text-xs text-muted-foreground lg:inline"
                           title={it.roleTitle}
                         >
                           {it.roleTitle}
                         </span>
-                        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                        <span className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground">
                           {it.blocker ?? it.actionTitle}
                           {alsoQueued.length > 0 && (
-                            <span className="ml-1.5 rounded-full bg-muted px-1.5 text-[10px] tabular-nums">
+                            <span className="ml-1.5 rounded-full bg-muted px-1.5 text-[11px] tabular-nums">
                               +{alsoQueued.length}
                             </span>
                           )}
                         </span>
-                        <span className="hidden w-16 shrink-0 items-center gap-1 truncate text-[11px] text-muted-foreground md:flex">
+                        <span className="hidden w-16 shrink-0 items-center gap-1 truncate text-xs text-muted-foreground md:flex">
                           <UserRound className="size-3 shrink-0" />
                           {it.ownerName.split(" ")[0]}
                         </span>
                         <span
                           className={cn(
-                            "w-16 shrink-0 text-right text-[11px] tabular-nums",
+                            "w-16 shrink-0 text-right text-xs tabular-nums",
                             it.overdue
                               ? "font-medium text-red-600 dark:text-red-400"
                               : "text-muted-foreground"
@@ -268,18 +268,18 @@ export function AttentionList({
                         <div className="border-t border-border/60 px-4 pb-4 pt-3">
                           <div className="flex flex-wrap items-center gap-1.5">
                             <StageBadge name={it.stageName} />
-                            <span className="text-[11px] text-muted-foreground">
+                            <span className="text-xs text-muted-foreground">
                               {it.timeInStage} in stage
                             </span>
                             <RiskBadge risk={it.risk} />
-                            <span className="ml-auto text-[11px] text-muted-foreground">
+                            <span className="ml-auto text-xs text-muted-foreground">
                               Owner: <span className="font-medium text-foreground">{it.ownerName}</span>
                             </span>
                           </div>
 
                           <div className="mt-2 space-y-0.5">
                             {it.blocker && (
-                              <p className="flex items-start gap-1.5 text-xs leading-snug">
+                              <p className="flex items-start gap-1.5 text-[13px] leading-snug">
                                 <CircleAlert className="mt-0.5 size-3.5 shrink-0 text-red-500" />
                                 <span>
                                   <span className="font-medium">Blocked:</span>{" "}
@@ -287,7 +287,7 @@ export function AttentionList({
                                 </span>
                               </p>
                             )}
-                            <p className="flex items-start gap-1.5 text-xs leading-snug">
+                            <p className="flex items-start gap-1.5 text-[13px] leading-snug">
                               <Clock className="mt-0.5 size-3.5 shrink-0 text-amber-600" />
                               <span>
                                 <span className="font-medium">Why now:</span>{" "}
@@ -300,20 +300,20 @@ export function AttentionList({
                           </div>
 
                           <div className="mt-2.5 rounded-md border border-border bg-muted/40 p-2.5">
-                            <p className="flex items-start gap-1.5 text-[13px] leading-snug">
+                            <p className="flex items-start gap-1.5 text-sm leading-snug">
                               <ArrowRight className="mt-0.5 size-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
                               <span>
-                                <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                                <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                   Relay will:
                                 </span>{" "}
                                 <span className="font-medium">{it.actionTitle}</span>
                               </span>
                             </p>
-                            <p className="mt-1 whitespace-pre-line pl-5 text-xs leading-relaxed text-muted-foreground">
+                            <p className="mt-1 whitespace-pre-line pl-5 text-[13px] leading-relaxed text-muted-foreground">
                               {it.proposedContent}
                             </p>
                             {it.escalationNote && (
-                              <p className="mt-1.5 flex items-start gap-1.5 pl-5 text-[11px] leading-snug text-muted-foreground">
+                              <p className="mt-1.5 flex items-start gap-1.5 pl-5 text-xs leading-snug text-muted-foreground">
                                 <ShieldAlert className="mt-px size-3 shrink-0 text-amber-600" />
                                 <span>
                                   <span className="font-medium text-foreground/80">
@@ -346,8 +346,8 @@ export function AttentionList({
                                   key={s.actionId}
                                   className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-2.5 py-1.5"
                                 >
-                                  <p className="min-w-0 text-xs leading-snug">
-                                    <span className="text-[10.5px] font-medium uppercase tracking-wide text-muted-foreground">
+                                  <p className="min-w-0 text-[13px] leading-snug">
+                                    <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                       Also queued:
                                     </span>{" "}
                                     <span className="font-medium">{s.actionTitle}</span>{" "}

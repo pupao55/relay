@@ -72,7 +72,7 @@ export function AutomationsView({ rules }: { rules: RuleItem[] }) {
   return (
     <div>
       <div className="mb-4 flex justify-end">
-        <Button size="sm" className="h-8 text-xs" onClick={() => setBuilderOpen(true)}>
+        <Button size="sm" className="h-8 text-[13px]" onClick={() => setBuilderOpen(true)}>
           <Plus className="size-3.5" /> New rule
         </Button>
       </div>
@@ -84,9 +84,9 @@ export function AutomationsView({ rules }: { rules: RuleItem[] }) {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <Workflow className="size-3.5 shrink-0 text-muted-foreground" />
-                  <h2 className="text-[13.5px] font-semibold">{r.name}</h2>
+                  <h2 className="text-sm font-semibold">{r.name}</h2>
                 </div>
-                <dl className="mt-2 grid gap-x-8 gap-y-1.5 text-xs sm:grid-cols-2">
+                <dl className="mt-2 grid gap-x-8 gap-y-1.5 text-[13px] sm:grid-cols-2">
                   <div>
                     <dt className="font-medium text-muted-foreground">Trigger</dt>
                     <dd className="mt-0.5">{r.trigger}</dd>
@@ -116,7 +116,7 @@ export function AutomationsView({ rules }: { rules: RuleItem[] }) {
               </div>
               <div className="flex shrink-0 flex-col items-end gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {r.active ? "Active" : "Off"}
                   </span>
                   <Switch
@@ -141,12 +141,12 @@ export function AutomationsView({ rules }: { rules: RuleItem[] }) {
                     })
                   }
                 >
-                  <SelectTrigger size="sm" className="h-7 w-52 text-xs" aria-label={`Mode for ${r.name}`}>
+                  <SelectTrigger size="sm" className="h-7 w-52 text-[13px]" aria-label={`Mode for ${r.name}`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {MODES.map((m) => (
-                      <SelectItem key={m} value={m} className="text-xs">
+                      <SelectItem key={m} value={m} className="text-[13px]">
                         <div>
                           <div>{AUTOMATION_MODE_META[m].label}</div>
                         </div>
@@ -154,7 +154,7 @@ export function AutomationsView({ rules }: { rules: RuleItem[] }) {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="max-w-52 text-right text-[10.5px] leading-snug text-muted-foreground">
+                <p className="max-w-52 text-right text-xs leading-snug text-muted-foreground">
                   {AUTOMATION_MODE_META[r.mode as AutomationMode]?.description}
                 </p>
               </div>
@@ -186,7 +186,7 @@ export function AutomationsView({ rules }: { rules: RuleItem[] }) {
               <div className="space-y-1.5">
                 <Label>When…</Label>
                 <Select value={triggerWhen} onValueChange={setTriggerWhen}>
-                  <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="text-[13px]"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {[
                       "a candidate has been waiting in a stage",
@@ -195,7 +195,7 @@ export function AutomationsView({ rules }: { rules: RuleItem[] }) {
                       "a candidate has received no update",
                       "an offer approval is pending",
                     ].map((t) => (
-                      <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
+                      <SelectItem key={t} value={t} className="text-[13px]">{t}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -214,7 +214,7 @@ export function AutomationsView({ rules }: { rules: RuleItem[] }) {
             <div className="space-y-1.5">
               <Label>Then…</Label>
               <Select value={thenDo} onValueChange={setThenDo}>
-                <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="text-[13px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {[
                     "send an internal reminder to the owner",
@@ -222,7 +222,7 @@ export function AutomationsView({ rules }: { rules: RuleItem[] }) {
                     "escalate to the recruiting lead",
                     "create a review task for the recruiter",
                   ].map((t) => (
-                    <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
+                    <SelectItem key={t} value={t} className="text-[13px]">{t}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -231,10 +231,10 @@ export function AutomationsView({ rules }: { rules: RuleItem[] }) {
               <div className="space-y-1.5">
                 <Label>Mode</Label>
                 <Select value={mode} onValueChange={(m) => setMode(m as AutomationMode)}>
-                  <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="text-[13px]"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {MODES.map((m) => (
-                      <SelectItem key={m} value={m} className="text-xs">
+                      <SelectItem key={m} value={m} className="text-[13px]">
                         {AUTOMATION_MODE_META[m].label}
                       </SelectItem>
                     ))}
@@ -250,7 +250,7 @@ export function AutomationsView({ rules }: { rules: RuleItem[] }) {
                 />
               </div>
             </div>
-            <div className="rounded-md border border-border bg-muted/40 p-3 text-xs leading-relaxed">
+            <div className="rounded-md border border-border bg-muted/40 p-3 text-[13px] leading-relaxed">
               <span className="font-medium">Rule preview: </span>
               {sentence}{" "}
               <span className="text-muted-foreground">

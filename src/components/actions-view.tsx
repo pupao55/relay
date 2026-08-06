@@ -86,18 +86,18 @@ export function ActionsView({
         )}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="rounded border border-border bg-muted/60 px-1.5 py-0.5 text-[10.5px] font-medium uppercase tracking-wide text-muted-foreground">
+            <span className="rounded border border-border bg-muted/60 px-1.5 py-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {ACTION_TYPE_LABELS[a.type as ActionType] ?? a.type}
             </span>
-            <span className="text-[13px] font-semibold leading-snug">{a.title}</span>
+            <span className="text-sm font-semibold leading-snug">{a.title}</span>
             <RiskBadge risk={a.risk} />
             <ActionStatusBadge status={a.status} />
-            <span className="ml-auto flex items-center gap-1 text-[11px] text-muted-foreground">
+            <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
               {a.createdBy === "AGENT" ? <Bot className="size-3" /> : <UserRound className="size-3" />}
               {a.createdBy === "AGENT" ? "Agent" : "Human"} · created {a.createdLabel}
             </span>
           </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
             <Link href={`/candidates/${a.candidateId}`} className="flex items-center gap-1.5 hover:underline">
               <UserAvatar name={a.candidateName} size="sm" />
               <span className="font-medium text-foreground">{a.candidateName}</span>
@@ -111,14 +111,14 @@ export function ActionsView({
               Due {a.dueLabel}
             </span>
           </div>
-          <p className="mt-2 whitespace-pre-line rounded-md border border-border bg-muted/40 p-2.5 text-xs leading-relaxed text-foreground/90">
+          <p className="mt-2 whitespace-pre-line rounded-md border border-border bg-muted/40 p-2.5 text-[13px] leading-relaxed text-foreground/90">
             {a.proposedContent}
           </p>
-          <p className="mt-1.5 text-xs text-muted-foreground">
+          <p className="mt-1.5 text-[13px] text-muted-foreground">
             <span className="font-medium text-foreground">Why:</span> {a.rationale}
           </p>
           {a.escalationNote && !["COMPLETED", "DISMISSED"].includes(a.status) && (
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-[13px] text-muted-foreground">
               <span className="font-medium text-foreground">If no one responds:</span>{" "}
               {a.escalationNote}
             </p>
@@ -126,7 +126,7 @@ export function ActionsView({
           {a.facts.length > 0 && (
             <ul className="mt-1.5 flex flex-wrap gap-1.5">
               {a.facts.map((f) => (
-                <li key={f} className="rounded border border-border px-1.5 py-0.5 text-[10.5px] text-muted-foreground">
+                <li key={f} className="rounded border border-border px-1.5 py-0.5 text-xs text-muted-foreground">
                   {f}
                 </li>
               ))}
@@ -163,9 +163,9 @@ export function ActionsView({
     <Tabs defaultValue="approval">
       <TabsList className="h-8">
         {TABS.map((t) => (
-          <TabsTrigger key={t.key} value={t.key} className="gap-1.5 px-3 text-xs">
+          <TabsTrigger key={t.key} value={t.key} className="gap-1.5 px-3 text-[13px]">
             {t.label}
-            <span className="rounded-full bg-muted px-1.5 text-[10px] tabular-nums text-muted-foreground">
+            <span className="rounded-full bg-muted px-1.5 text-[11px] tabular-nums text-muted-foreground">
               {groups[t.key].length}
             </span>
           </TabsTrigger>
@@ -175,7 +175,7 @@ export function ActionsView({
       <TabsContent value="approval" className="mt-4">
         {lowRiskApprovals.length > 0 && (
           <div className="mb-3 flex items-center justify-between rounded-md border border-border bg-muted/40 px-3 py-2">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[13px] text-muted-foreground">
               {lowRiskApprovals.length} low-risk internal action{lowRiskApprovals.length === 1 ? "" : "s"} eligible
               for bulk approval. High-risk and candidate-facing actions always require individual review.
             </p>
@@ -183,7 +183,7 @@ export function ActionsView({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 text-xs"
+                className="h-7 text-[13px]"
                 onClick={() =>
                   setSelected((prev) =>
                     prev.size === lowRiskApprovals.length
@@ -196,7 +196,7 @@ export function ActionsView({
               </Button>
               <Button
                 size="sm"
-                className="h-7 text-xs"
+                className="h-7 text-[13px]"
                 disabled={selected.size === 0 || pending}
                 onClick={bulkApprove}
               >

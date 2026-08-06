@@ -28,8 +28,8 @@ function Section({
 }) {
   return (
     <section className="rounded-lg border border-border bg-card p-4">
-      <h2 className="text-[13px] font-semibold">{title}</h2>
-      <p className="mb-3 mt-0.5 text-[11.5px] text-muted-foreground">{sub}</p>
+      <h2 className="text-sm font-semibold">{title}</h2>
+      <p className="mb-3 mt-0.5 text-xs text-muted-foreground">{sub}</p>
       {children}
     </section>
   );
@@ -187,29 +187,29 @@ export default async function AnalyticsPage() {
   return (
     <div>
       <div className="mb-5">
-        <h1 className="text-lg font-semibold tracking-tight">Analytics</h1>
-        <p className="text-[13px] text-muted-foreground">
+        <h1 className="text-xl font-semibold tracking-tight">Analytics</h1>
+        <p className="text-sm text-muted-foreground">
           Candidate movement, not vanity metrics: where processes wait, and on whom.
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {stats.map((s) => (
-          <div key={s.label} className="rounded-lg border border-border bg-card px-3.5 py-3">
-            <div className="text-[11px] font-medium leading-snug text-muted-foreground">{s.label}</div>
+          <div key={s.label} className="rounded-lg border border-border bg-card p-4">
+            <div className="text-xs font-medium leading-snug text-muted-foreground">{s.label}</div>
             <div
-              className={`mt-1 text-xl font-semibold tabular-nums tracking-tight ${
+              className={`mt-1 text-2xl font-semibold tabular-nums tracking-tight ${
                 s.alert ? "text-red-600 dark:text-red-400" : ""
               }`}
             >
               {s.value}
             </div>
-            <div className="mt-0.5 text-[10.5px] text-muted-foreground">{s.sub}</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">{s.sub}</div>
           </div>
         ))}
       </div>
 
-      <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+      <p className="mt-2 text-xs leading-snug text-muted-foreground">
         Idle candidate-days formula — outstanding: sum over active applications of whole days
         since the last logged activity. Resolved: for each Relay-created action completed in the
         last 7 days, the days between its creation (when the blocker breached SLA) and its
@@ -226,7 +226,7 @@ export default async function AnalyticsPage() {
 
         <Section title="Overdue actions by owner" sub="Open actions past their due date">
           {overdueByOwner.length === 0 ? (
-            <p className="py-10 text-center text-xs text-muted-foreground">
+            <p className="py-10 text-center text-[13px] text-muted-foreground">
               No overdue actions. The pipeline is current.
             </p>
           ) : (

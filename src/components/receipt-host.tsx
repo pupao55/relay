@@ -58,7 +58,7 @@ export function ReceiptHost() {
           {review && (
             <>
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-[15px]">
+                <DialogTitle className="flex items-center gap-2 text-base">
                   <CheckCircle2 className="size-4 text-emerald-600" />
                   {DECISION_LABEL[review.decision]}
                 </DialogTitle>
@@ -66,9 +66,9 @@ export function ReceiptHost() {
                   {review.actor}&apos;s decision on {review.candidateName} — executed and logged.
                 </DialogDescription>
               </DialogHeader>
-              <dl className="space-y-2.5 text-[13px]">
+              <dl className="space-y-2.5 text-sm">
                 <div>
-                  <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Stage
                   </dt>
                   <dd className="mt-0.5">
@@ -83,7 +83,7 @@ export function ReceiptHost() {
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Momentum
                   </dt>
                   <dd className="mt-1 flex items-center gap-1.5">
@@ -97,14 +97,14 @@ export function ReceiptHost() {
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Next action
                   </dt>
                   <dd className="mt-0.5 leading-snug">{review.nextAction}</dd>
                 </div>
               </dl>
               <div className="flex justify-end">
-                <Button size="sm" className="h-7 text-xs" onClick={() => setReview(null)}>
+                <Button size="sm" className="h-7 text-[13px]" onClick={() => setReview(null)}>
                   Done
                 </Button>
               </div>

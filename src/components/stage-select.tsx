@@ -33,12 +33,12 @@ export function StageSelect({
         });
       }}
     >
-      <SelectTrigger size="sm" className="h-7 w-auto gap-1.5 text-xs" aria-label="Change stage">
+      <SelectTrigger size="sm" className="h-7 w-auto gap-1.5 text-[13px]" aria-label="Change stage">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
         {stages.map((s) => (
-          <SelectItem key={s.id} value={s.id} className="text-xs">
+          <SelectItem key={s.id} value={s.id} className="text-[13px]">
             {s.name}
           </SelectItem>
         ))}

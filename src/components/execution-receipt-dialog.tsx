@@ -24,7 +24,7 @@ export function ExecutionReceiptDialog({
         {receipt && (
           <>
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-[15px]">
+              <DialogTitle className="flex items-center gap-2 text-base">
                 <CheckCircle2 className="size-4 text-emerald-600" />
                 Executed
               </DialogTitle>
@@ -32,17 +32,17 @@ export function ExecutionReceiptDialog({
                 What Relay just did for {receipt.candidateName} — logged to the audit trail.
               </DialogDescription>
             </DialogHeader>
-            <dl className="space-y-2.5 text-[13px]">
+            <dl className="space-y-2.5 text-sm">
               <div className="flex items-start gap-2">
                 <ArrowRight className="mt-0.5 size-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
                 <div>
-                  <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Action performed
                   </dt>
                   <dd className="mt-0.5 leading-snug">
                     {receipt.performed}
                     {receipt.channel && (
-                      <span className="ml-1.5 rounded border border-border px-1 py-px text-[10px] text-muted-foreground">
+                      <span className="ml-1.5 rounded border border-border px-1 py-px text-[11px] text-muted-foreground">
                         {receipt.channel}
                       </span>
                     )}
@@ -53,7 +53,7 @@ export function ExecutionReceiptDialog({
                 <div className="flex items-start gap-2">
                   <UserRound className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
                   <div>
-                    <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       Recipient
                     </dt>
                     <dd className="mt-0.5">{receipt.recipient}</dd>
@@ -63,11 +63,11 @@ export function ExecutionReceiptDialog({
               <div className="flex items-start gap-2">
                 <CornerDownRight className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
                 <div>
-                  <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Candidate state
                   </dt>
                   <dd className="mt-0.5 leading-snug">{receipt.resultingState}</dd>
-                  <dt className="mt-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  <dt className="mt-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Next action
                   </dt>
                   <dd className="mt-0.5 leading-snug">{receipt.nextAction}</dd>
@@ -77,10 +77,10 @@ export function ExecutionReceiptDialog({
                 <div className="flex items-start gap-2 rounded-md border border-border bg-muted/40 p-2.5">
                   <ShieldAlert className="mt-0.5 size-3.5 shrink-0 text-amber-600" />
                   <div>
-                    <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       If no one responds
                     </dt>
-                    <dd className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                    <dd className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">
                       {receipt.escalation}
                     </dd>
                   </div>
@@ -88,7 +88,7 @@ export function ExecutionReceiptDialog({
               )}
             </dl>
             <div className="flex justify-end">
-              <Button size="sm" className="h-7 text-xs" onClick={onClose}>
+              <Button size="sm" className="h-7 text-[13px]" onClick={onClose}>
                 Done
               </Button>
             </div>

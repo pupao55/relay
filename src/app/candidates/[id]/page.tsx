@@ -181,7 +181,7 @@ export default async function CandidateDetailPage({
     <div>
       <Link
         href="/candidates"
-        className="mb-4 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+        className="mb-4 inline-flex items-center gap-1 text-[13px] text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-3.5" /> Candidates
       </Link>
@@ -191,8 +191,8 @@ export default async function CandidateDetailPage({
         <div className="flex items-start gap-3">
           <UserAvatar name={candidate.name} size="lg" />
           <div>
-            <h1 className="text-lg font-semibold tracking-tight">{candidate.name}</h1>
-            <p className="text-[13px] text-muted-foreground">
+            <h1 className="text-xl font-semibold tracking-tight">{candidate.name}</h1>
+            <p className="text-sm text-muted-foreground">
               {candidate.currentTitle} at {candidate.currentCompany} · considering{" "}
               <span className="font-medium text-foreground">{app.role.title}</span>
             </p>
@@ -212,7 +212,7 @@ export default async function CandidateDetailPage({
             </div>
           </div>
         </div>
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs sm:grid-cols-3">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[13px] sm:grid-cols-3">
           <div>
             <dt className="text-muted-foreground">Owner</dt>
             <dd className="mt-0.5 flex items-center gap-1.5 font-medium">
@@ -252,17 +252,17 @@ export default async function CandidateDetailPage({
         <div className="mt-5 rounded-lg border border-border bg-card p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 <ArrowRight className="size-3.5 text-blue-600 dark:text-blue-400" />
                 Next best action
                 <ActionStatusBadge status={nextAction.status} />
                 <RiskBadge risk={nextAction.risk} />
               </div>
-              <h2 className="mt-1.5 text-[15px] font-semibold leading-snug">{nextAction.title}</h2>
-              <p className="mt-1.5 whitespace-pre-line text-[13px] leading-relaxed text-foreground/90">
+              <h2 className="mt-1.5 text-base font-semibold leading-snug">{nextAction.title}</h2>
+              <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-foreground/90">
                 {nextAction.proposedContent}
               </p>
-              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
                 <span className="font-medium text-foreground">Why:</span> {nextAction.rationale}
               </p>
               {facts.length > 0 && (
@@ -270,7 +270,7 @@ export default async function CandidateDetailPage({
                   {facts.map((f) => (
                     <li
                       key={f}
-                      className="rounded border border-border bg-muted/50 px-1.5 py-0.5 text-[11px] text-muted-foreground"
+                      className="rounded border border-border bg-muted/50 px-1.5 py-0.5 text-xs text-muted-foreground"
                     >
                       {f}
                     </li>
@@ -278,20 +278,20 @@ export default async function CandidateDetailPage({
                 </ul>
               )}
               {nextAction.escalationNote && (
-                <p className="mt-2 text-xs leading-snug text-muted-foreground">
+                <p className="mt-2 text-[13px] leading-snug text-muted-foreground">
                   <span className="font-medium text-foreground">If no one responds:</span>{" "}
                   {nextAction.escalationNote}
                 </p>
               )}
             </div>
-            <div className="shrink-0 text-right text-xs text-muted-foreground">
+            <div className="shrink-0 text-right text-[13px] text-muted-foreground">
               <div>
                 Owner: <span className="font-medium text-foreground">{nextAction.owner.name}</span>
               </div>
               <div className={nextDue?.overdue ? "font-medium text-red-600 dark:text-red-400" : ""}>
                 Due {nextDue?.label}
               </div>
-              <div className="mt-1 flex items-center justify-end gap-1 text-[11px]">
+              <div className="mt-1 flex items-center justify-end gap-1 text-xs">
                 {nextAction.createdBy === "AGENT" ? (
                   <>
                     <Bot className="size-3" /> Agent-proposed
@@ -326,7 +326,7 @@ export default async function CandidateDetailPage({
             <p className="text-sm font-semibold text-red-700 dark:text-red-300">
               No next action — error state
             </p>
-            <p className="mt-0.5 text-xs text-red-600/90 dark:text-red-400/90">
+            <p className="mt-0.5 text-[13px] text-red-600/90 dark:text-red-400/90">
               Every active application must have a next action, owner, and due date. Run an agent
               pass from the Command Center to repair this.
             </p>
@@ -338,7 +338,7 @@ export default async function CandidateDetailPage({
       <Tabs defaultValue="overview" className="mt-6">
         <TabsList className="h-8">
           {["overview", "timeline", "interviews", "feedback", "communications", "applications"].map((t) => (
-            <TabsTrigger key={t} value={t} className="px-3 text-xs capitalize">
+            <TabsTrigger key={t} value={t} className="px-3 text-[13px] capitalize">
               {t}
             </TabsTrigger>
           ))}
@@ -349,26 +349,26 @@ export default async function CandidateDetailPage({
           <div className="grid gap-4 lg:grid-cols-3">
             <div className="space-y-4 lg:col-span-2">
               <section className="rounded-lg border border-border bg-card p-4">
-                <h3 className="text-[13px] font-semibold">Summary</h3>
-                <p className="mt-1.5 text-[13px] leading-relaxed text-foreground/90">
+                <h3 className="text-sm font-semibold">Summary</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-foreground/90">
                   {candidate.summary}
                 </p>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <div>
-                    <h4 className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Strengths</h4>
+                    <h4 className="text-[13px] font-medium text-emerald-700 dark:text-emerald-400">Strengths</h4>
                     <ul className="mt-1.5 space-y-1">
                       {strengths.map((s) => (
-                        <li key={s} className="flex items-start gap-1.5 text-xs leading-snug">
+                        <li key={s} className="flex items-start gap-1.5 text-[13px] leading-snug">
                           <Check className="mt-0.5 size-3 shrink-0 text-emerald-600" /> {s}
                         </li>
                       ))}
                     </ul>
                   </div>
                   <div>
-                    <h4 className="text-xs font-medium text-amber-700 dark:text-amber-400">Concerns</h4>
+                    <h4 className="text-[13px] font-medium text-amber-700 dark:text-amber-400">Concerns</h4>
                     <ul className="mt-1.5 space-y-1">
                       {concerns.map((c) => (
-                        <li key={c} className="flex items-start gap-1.5 text-xs leading-snug">
+                        <li key={c} className="flex items-start gap-1.5 text-[13px] leading-snug">
                           <Minus className="mt-0.5 size-3 shrink-0 text-amber-600" /> {c}
                         </li>
                       ))}
@@ -378,19 +378,19 @@ export default async function CandidateDetailPage({
               </section>
 
               <section className="rounded-lg border border-border bg-card p-4">
-                <h3 className="text-[13px] font-semibold">Role criteria — {app.role.title}</h3>
+                <h3 className="text-sm font-semibold">Role criteria — {app.role.title}</h3>
                 <ul className="mt-2 space-y-1.5">
                   {required.map((c) => {
                     const hit = criteriaMatch(c);
                     return (
-                      <li key={c} className="flex items-start gap-2 text-xs leading-snug">
+                      <li key={c} className="flex items-start gap-2 text-[13px] leading-snug">
                         {hit ? (
                           <Check className="mt-0.5 size-3.5 shrink-0 text-emerald-600" />
                         ) : (
                           <Minus className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
                         )}
                         <span className={hit ? "" : "text-muted-foreground"}>{c}</span>
-                        <span className="ml-auto shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground">
+                        <span className="ml-auto shrink-0 text-[11px] uppercase tracking-wide text-muted-foreground">
                           required
                         </span>
                       </li>
@@ -399,32 +399,32 @@ export default async function CandidateDetailPage({
                   {preferred.map((c) => {
                     const hit = criteriaMatch(c);
                     return (
-                      <li key={c} className="flex items-start gap-2 text-xs leading-snug">
+                      <li key={c} className="flex items-start gap-2 text-[13px] leading-snug">
                         {hit ? (
                           <Check className="mt-0.5 size-3.5 shrink-0 text-emerald-600" />
                         ) : (
                           <Minus className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
                         )}
                         <span className={hit ? "" : "text-muted-foreground"}>{c}</span>
-                        <span className="ml-auto shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground/70">
+                        <span className="ml-auto shrink-0 text-[11px] uppercase tracking-wide text-muted-foreground/70">
                           preferred
                         </span>
                       </li>
                     );
                   })}
                 </ul>
-                <p className="mt-2 text-[11px] text-muted-foreground">
+                <p className="mt-2 text-xs text-muted-foreground">
                   Signal derived from profile keywords — verify in interviews.
                 </p>
               </section>
 
               <section className="rounded-lg border border-border bg-card p-4">
-                <h3 className="flex items-center gap-1.5 text-[13px] font-semibold">
+                <h3 className="flex items-center gap-1.5 text-sm font-semibold">
                   <Building2 className="size-3.5 text-muted-foreground" /> History
                 </h3>
                 <ul className="mt-2 space-y-1.5">
                   {prior.map((p) => (
-                    <li key={`${p.company}-${p.years}`} className="flex items-baseline justify-between gap-3 text-xs">
+                    <li key={`${p.company}-${p.years}`} className="flex items-baseline justify-between gap-3 text-[13px]">
                       <span>
                         <span className="font-medium">{p.company}</span>{" "}
                         <span className="text-muted-foreground">— {p.title}</span>
@@ -438,10 +438,10 @@ export default async function CandidateDetailPage({
 
             <div className="space-y-4">
               <section className="rounded-lg border border-border bg-card p-4">
-                <h3 className="flex items-center gap-1.5 text-[13px] font-semibold">
+                <h3 className="flex items-center gap-1.5 text-sm font-semibold">
                   <CalendarClock className="size-3.5 text-muted-foreground" /> Active deadlines
                 </h3>
-                <ul className="mt-2 space-y-2 text-xs">
+                <ul className="mt-2 space-y-2 text-[13px]">
                   {candidate.competingDeadline && (
                     <li className="rounded-md border border-orange-200 bg-orange-50 p-2 leading-snug dark:border-orange-900 dark:bg-orange-950/40">
                       <span className="font-medium text-orange-800 dark:text-orange-300">
@@ -475,10 +475,10 @@ export default async function CandidateDetailPage({
 
               {relatedRoles.length > 0 && (
                 <section className="rounded-lg border border-border bg-card p-4">
-                  <h3 className="text-[13px] font-semibold">Also matches</h3>
+                  <h3 className="text-sm font-semibold">Also matches</h3>
                   <ul className="mt-2 space-y-2">
                     {relatedRoles.map((r) => (
-                      <li key={r.id} className="text-xs leading-snug">
+                      <li key={r.id} className="text-[13px] leading-snug">
                         <Link href={`/roles/${r.id}`} className="font-medium hover:underline">
                           {r.title}
                         </Link>
@@ -492,7 +492,7 @@ export default async function CandidateDetailPage({
               )}
 
               <section className="rounded-lg border border-border bg-card p-4">
-                <h3 className="flex items-center gap-1.5 text-[13px] font-semibold">
+                <h3 className="flex items-center gap-1.5 text-sm font-semibold">
                   <StickyNote className="size-3.5 text-muted-foreground" /> Notes
                 </h3>
                 <div className="mt-2">
@@ -531,18 +531,18 @@ export default async function CandidateDetailPage({
                     )}
                   </span>
                   <div className="flex flex-wrap items-baseline gap-x-2">
-                    <span className="text-[13px] font-medium leading-snug">{e.title}</span>
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="text-sm font-medium leading-snug">{e.title}</span>
+                    <span className="text-xs text-muted-foreground">
                       {e.actor} · {shortDateTime(e.ts)}
                     </span>
                     {e.meta && (
-                      <span className="rounded border border-border px-1 py-px text-[10px] text-muted-foreground">
+                      <span className="rounded border border-border px-1 py-px text-[11px] text-muted-foreground">
                         {e.meta}
                       </span>
                     )}
                   </div>
                   {e.detail && (
-                    <p className="mt-1 max-w-2xl whitespace-pre-line text-xs leading-relaxed text-muted-foreground">
+                    <p className="mt-1 max-w-2xl whitespace-pre-line text-[13px] leading-relaxed text-muted-foreground">
                       {e.detail}
                     </p>
                   )}
@@ -564,9 +564,9 @@ export default async function CandidateDetailPage({
                 <li key={iv.id} className="rounded-lg border border-border bg-card p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-[13px] font-semibold">{iv.name}</span>
+                      <span className="text-sm font-semibold">{iv.name}</span>
                       <span
-                        className={`rounded border px-1.5 py-0.5 text-[11px] font-medium ${
+                        className={`rounded border px-1.5 py-0.5 text-xs font-medium ${
                           iv.status === "COMPLETED"
                             ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400"
                             : iv.status === "SCHEDULED"
@@ -579,14 +579,14 @@ export default async function CandidateDetailPage({
                         {iv.status.replace("_", " ").toLowerCase()}
                       </span>
                     </div>
-                    <span className="text-xs tabular-nums text-muted-foreground">
+                    <span className="text-[13px] tabular-nums text-muted-foreground">
                       {iv.scheduledAt ? shortDateTime(iv.scheduledAt) : "Not scheduled"} · {iv.durationMins} min
                     </span>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <span className="text-[11px] text-muted-foreground">Panel:</span>
+                    <span className="text-xs text-muted-foreground">Panel:</span>
                     {iv.panelists.map((p) => (
-                      <span key={p.userId} className="flex items-center gap-1 text-xs">
+                      <span key={p.userId} className="flex items-center gap-1 text-[13px]">
                         <UserAvatar name={p.user.name} size="sm" /> {p.user.name}
                       </span>
                     ))}
@@ -613,12 +613,12 @@ export default async function CandidateDetailPage({
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <UserAvatar name={f.interviewer.name} size="sm" />
-                          <span className="text-[13px] font-medium">{f.interviewer.name}</span>
-                          <span className="text-[11px] text-muted-foreground">{iv.name}</span>
+                          <span className="text-sm font-medium">{f.interviewer.name}</span>
+                          <span className="text-xs text-muted-foreground">{iv.name}</span>
                         </div>
                         {f.status === "SUBMITTED" && f.rating ? (
                           <span
-                            className={`rounded border px-1.5 py-0.5 text-[11px] font-medium ${
+                            className={`rounded border px-1.5 py-0.5 text-xs font-medium ${
                               f.rating.includes("YES")
                                 ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400"
                                 : f.rating === "MIXED"
@@ -630,7 +630,7 @@ export default async function CandidateDetailPage({
                           </span>
                         ) : (
                           <span
-                            className={`rounded border px-1.5 py-0.5 text-[11px] font-medium ${
+                            className={`rounded border px-1.5 py-0.5 text-xs font-medium ${
                               overdue
                                 ? "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400"
                                 : "border-border bg-muted text-muted-foreground"
@@ -641,7 +641,7 @@ export default async function CandidateDetailPage({
                         )}
                       </div>
                       {f.summary && (
-                        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{f.summary}</p>
+                        <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">{f.summary}</p>
                       )}
                     </li>
                   );
@@ -662,24 +662,24 @@ export default async function CandidateDetailPage({
               {app.communications.map((c) => (
                 <li key={c.id} className="rounded-lg border border-border bg-card p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 text-[13px]">
+                    <div className="flex items-center gap-2 text-sm">
                       <Mail className="size-3.5 text-muted-foreground" />
                       <span className="font-medium">{c.subject}</span>
-                      <span className="rounded border border-border px-1 py-px text-[10px] uppercase tracking-wide text-muted-foreground">
+                      <span className="rounded border border-border px-1 py-px text-[11px] uppercase tracking-wide text-muted-foreground">
                         {c.channel}
                       </span>
                       {c.candidateFacing && (
-                        <span className="rounded border border-blue-200 bg-blue-50 px-1 py-px text-[10px] text-blue-700 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-400">
+                        <span className="rounded border border-blue-200 bg-blue-50 px-1 py-px text-[11px] text-blue-700 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-400">
                           candidate-facing
                         </span>
                       )}
                     </div>
-                    <span className="text-[11px] tabular-nums text-muted-foreground">
+                    <span className="text-xs tabular-nums text-muted-foreground">
                       {c.sentBy?.name ?? (c.direction === "INBOUND" ? candidate.name : "Relay Agent")} ·{" "}
                       {shortDateTime(c.sentAt)}
                     </span>
                   </div>
-                  <p className="mt-2 whitespace-pre-line text-xs leading-relaxed text-muted-foreground">
+                  <p className="mt-2 whitespace-pre-line text-[13px] leading-relaxed text-muted-foreground">
                     {c.body}
                   </p>
                 </li>
@@ -695,17 +695,17 @@ export default async function CandidateDetailPage({
               <li key={a.id} className="rounded-lg border border-border bg-card p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <Link href={`/roles/${a.roleId}`} className="text-[13px] font-semibold hover:underline">
+                    <Link href={`/roles/${a.roleId}`} className="text-sm font-semibold hover:underline">
                       {a.role.title}
                     </Link>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    <p className="mt-0.5 text-xs text-muted-foreground">
                       Applied {shortDate(a.appliedAt)} · {SOURCE_TYPE_LABELS[a.source.type as SourceType] ?? a.source.type} ({a.source.name})
                     </p>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <StageBadge name={a.stage.name} />
                     {a.status !== "ACTIVE" && (
-                      <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                      <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
                         {a.status.charAt(0) + a.status.slice(1).toLowerCase()}
                       </span>
                     )}
@@ -713,7 +713,7 @@ export default async function CandidateDetailPage({
                   </div>
                 </div>
                 {a.resolutionReason && (
-                  <p className="mt-2 text-xs text-muted-foreground">
+                  <p className="mt-2 text-[13px] text-muted-foreground">
                     <span className="font-medium text-foreground">Resolution:</span> {a.resolutionReason}
                   </p>
                 )}
