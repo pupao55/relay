@@ -54,9 +54,12 @@ doesn't, Relay treats it as an error."
 ## 0:20 — Command Center
 
 - Run the 2-minute Maya story above.
-- Point out the queue grouping: **withdrawal risk → unowned → blocked → overdue** —
-  urgency order, not stage order. One card per candidate; further queued actions ride
-  along as "Also queued" rows.
+- Point out the queue shape: **verb-first rows with the Approve button on the row**,
+  split into Your actions / Team actions and ordered by urgency (overdue → risk → due).
+  One row per candidate; extra queued actions ride along as a +N chip.
+- Switch persona to **James Wu**: the Command Center becomes the hiring manager's —
+  Waiting on your review (rank, compare, review), Scorecards you owe, Your pipelines,
+  with Relay's own work relegated to the rail.
 - Show the right rail: the **Review queue** (every pending HM review, manager-controlled
   ranking, one click to decide), **Waiting on replies** (whose court the ball is in,
   with reply deadlines), and **idle candidate-days** — days candidates sat without

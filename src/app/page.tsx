@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   AlertTriangle,
   CalendarClock,
@@ -201,6 +202,7 @@ export default async function CommandCenterPage() {
       status: a.status,
       risk: a.risk,
       dueLabel: due.label,
+      dueTs: a.dueAt.getTime(),
       overdue: due.overdue,
       candidateId: cand.id,
       candidateName: cand.name,
@@ -284,6 +286,172 @@ export default async function CommandCenterPage() {
     { text: `${needsSchedulingCount} interview${needsSchedulingCount === 1 ? " needs" : "s need"} scheduling`, urgent: needsSchedulingCount > 0 },
     { text: `${overdueFeedbackCount} scorecard${overdueFeedbackCount === 1 ? " is" : "s are"} overdue`, urgent: overdueFeedbackCount > 0 },
   ];
+
+  // ---- Hiring-manager home: their work, not the recruiter's dashboard ----
+  if (currentUser.userRole === "HIRING_MANAGER") {
+    const myReviews = reviewQueue.filter((r) => r.hmName === currentUser.name);
+    const [myScorecards, myRoles] = await Promise.all([
+      db.feedback.findMany({
+        where: {
+          interviewerId: currentUser.id,
+          status: "PENDING",
+          interview: { application: { status: "ACTIVE" } },
+        },
+        include: {
+          interview: {
+            include: { application: { include: { candidate: true, role: true } } },
+          },
+        },
+        orderBy: { dueAt: "asc" },
+      }),
+      db.role.findMany({
+        where: { hiringManagerId: currentUser.id, status: "OPEN" },
+        include: { applications: { where: { status: "ACTIVE" } } },
+      }),
+    ]);
+    const myRoleItems = items.filter((i) =>
+      myRoles.some((r) => r.title === i.roleTitle)
+    );
+
+    return (
+      <div>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h1 className="text-xl font-semibold tracking-tight">
+            {myReviews.length > 0
+              ? `${myReviews.length} candidate${myReviews.length === 1 ? "" : "s"} waiting on your review`
+              : "Your review queue is clear"}
+          </h1>
+          <RunAgentButton />
+        </div>
+
+        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_290px]">
+          <div className="space-y-6">
+            <section aria-label="Waiting on your review">
+              <h2 className="mb-3 text-sm font-semibold">Waiting on your review</h2>
+              <ReviewQueueCard items={myReviews} currentUserName={currentUser.name} />
+            </section>
+
+            <section aria-label="Scorecards you owe">
+              <h2 className="mb-3 text-sm font-semibold">
+                Scorecards you owe
+                <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                  {myScorecards.length}
+                </span>
+              </h2>
+              {myScorecards.length === 0 ? (
+                <div className="rounded-lg border border-border bg-card p-4">
+                  <p className="text-[13px] text-muted-foreground">No scorecards outstanding.</p>
+                </div>
+              ) : (
+                <ul className="divide-y divide-border rounded-lg border border-border bg-card">
+                  {myScorecards.map((f) => {
+                    const d = dueLabel(f.dueAt, now);
+                    const app = f.interview.application;
+                    return (
+                      <li key={f.id} className="flex items-center gap-2.5 px-3.5 py-2.5">
+                        <Link
+                          href={`/candidates/${app.candidate.id}`}
+                          className="w-36 shrink-0 truncate text-sm font-medium hover:underline"
+                        >
+                          {app.candidate.name}
+                        </Link>
+                        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                          {f.interview.name} · {app.role.title}
+                        </span>
+                        <span
+                          className={`w-20 shrink-0 text-right text-xs tabular-nums ${
+                            f.interview.status === "COMPLETED" && d.overdue
+                              ? "font-medium text-red-600 dark:text-red-400"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {f.interview.status === "COMPLETED" ? `due ${d.label}` : "after interview"}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+
+            <section aria-label="Your pipelines">
+              <h2 className="mb-3 text-sm font-semibold">Your pipelines</h2>
+              <ul className="divide-y divide-border rounded-lg border border-border bg-card">
+                {myRoles.map((r) => {
+                  const active = r.applications;
+                  const blocked = active.filter(
+                    (a) => a.momentum === "BLOCKED" || a.momentum === "AT_RISK"
+                  ).length;
+                  return (
+                    <li key={r.id} className="flex items-center gap-2.5 px-3.5 py-2.5">
+                      <Link
+                        href={`/roles/${r.id}`}
+                        className="min-w-0 flex-1 truncate text-sm font-medium hover:underline"
+                      >
+                        {r.title}
+                      </Link>
+                      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                        {active.length} active
+                      </span>
+                      <span
+                        className={`w-20 shrink-0 text-right text-xs tabular-nums ${
+                          blocked > 0
+                            ? "font-medium text-red-600 dark:text-red-400"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        {blocked > 0 ? `${blocked} blocked` : "healthy"}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          </div>
+
+          <aside className="space-y-4">
+            <div>
+              <h2 className="mb-3 text-sm font-semibold">
+                Relay is handling
+                <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                  {myRoleItems.length}
+                </span>
+              </h2>
+              <div className="rounded-lg border border-border bg-card p-4">
+                {myRoleItems.length === 0 ? (
+                  <p className="text-[13px] text-muted-foreground">
+                    Nothing pending on your roles.
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {myRoleItems.map((i) => (
+                      <li key={i.actionId} className="text-xs leading-snug">
+                        <Link
+                          href={`/candidates/${i.candidateId}`}
+                          className="font-medium hover:underline"
+                        >
+                          {i.candidateName}
+                        </Link>
+                        <span className="text-muted-foreground"> — {i.actionTitle}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+            <div>
+              <h2 className="mb-3 text-sm font-semibold">Last agent pass</h2>
+              <div className="rounded-lg border border-border bg-card p-4">
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  {lastRun ? `${shortDateTime(lastRun.startedAt)} — ${lastRun.summary}` : "No agent pass yet."}
+                </p>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

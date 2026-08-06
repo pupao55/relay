@@ -203,7 +203,12 @@ export default async function RoleDetailPage({
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-2 text-[13px] font-medium">
                       {stage.name}
-                      {apps.length > 1 && <CompareDialog items={apps.map(buildCompare)} />}
+                      {apps.length > 1 && (
+                        <CompareDialog
+                          items={apps.map(buildCompare)}
+                          rankable={stage.name === "Hiring Manager Review"}
+                        />
+                      )}
                     </span>
                     <span className="text-xs tabular-nums text-muted-foreground">
                       {apps.length} candidate{apps.length === 1 ? "" : "s"} · SLA {stage.slaHours}h

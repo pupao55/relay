@@ -80,6 +80,7 @@ export function ReviewQueueCard({
                 <span className="ml-auto">
                   <CompareDialog
                     items={list.map((x) => ({ ...x.data, candidateId: x.candidateId }))}
+                    rankable
                   />
                 </span>
               )}

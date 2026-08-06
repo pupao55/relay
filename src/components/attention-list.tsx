@@ -1,26 +1,29 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
+  Check,
   ChevronDown,
   ChevronRight,
   CircleAlert,
   Inbox,
   ShieldAlert,
-  UserRound,
 } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ActionControls } from "@/components/action-controls";
 import { HmReviewSheet, type HmReviewData } from "@/components/hm-review-sheet";
+import { showReceipt } from "@/components/receipt-host";
 import {
   EXECUTION_STATE_META,
+  RiskBadge,
   StageBadge,
-  StateBadge,
   type ExecutionState,
 } from "@/components/status-badges";
-import { RiskBadge } from "@/components/status-badges";
+import { UserAvatar } from "@/components/user-avatar";
+import { approveAction } from "@/lib/actions";
 
 export interface AttentionItem {
   actionId: string;
@@ -31,6 +34,7 @@ export interface AttentionItem {
   status: string;
   risk: string;
   dueLabel: string;
+  dueTs: number;
   overdue: boolean;
   candidateId: string;
   candidateName: string;
@@ -49,7 +53,6 @@ export interface AttentionItem {
 
 const FILTERS = [
   { key: "all", label: "All" },
-  { key: "mine", label: "My actions" },
   { key: "overdue", label: "Overdue" },
   { key: "risk", label: "Withdrawal risk" },
   { key: "hm", label: "Hiring manager" },
@@ -61,17 +64,29 @@ type FilterKey = (typeof FILTERS)[number]["key"];
 
 const RISK_ORDER: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
 
-const GROUPS: { state: ExecutionState; title: string }[] = [
-  { state: "AT_RISK", title: "Immediate withdrawal risk" },
-  { state: "UNOWNED", title: "Unowned — error state" },
-  { state: "BLOCKED", title: "Blocked on a person" },
-  { state: "OVERDUE", title: "Overdue" },
-  { state: "SLOWING", title: "Slowing" },
-  { state: "MOVING", title: "Healthy — queued actions" },
-];
-
-/** One card per candidate: highest-priority action leads, the rest ride along. */
 type Card = { primary: AttentionItem; alsoQueued: AttentionItem[] };
+
+/** One-click approve straight from the row — the receipt confirms what ran. */
+function RowApprove({ actionId }: { actionId: string }) {
+  const [pending, startTransition] = useTransition();
+  return (
+    <button
+      type="button"
+      disabled={pending}
+      onClick={(e) => {
+        e.stopPropagation();
+        startTransition(async () => {
+          const r = await approveAction(actionId);
+          if (r) showReceipt(r);
+          else toast.success("Approved");
+        });
+      }}
+      className="flex h-6 shrink-0 items-center gap-1 rounded-md bg-foreground px-2 text-xs font-medium text-background transition-opacity hover:opacity-85 disabled:opacity-50"
+    >
+      <Check className="size-3" /> Approve
+    </button>
+  );
+}
 
 export function AttentionList({
   items,
@@ -87,8 +102,6 @@ export function AttentionList({
 
   const matches = (it: AttentionItem, key: FilterKey): boolean => {
     switch (key) {
-      case "mine":
-        return it.ownerId === currentUserId;
       case "overdue":
         return it.overdue;
       case "risk":
@@ -108,30 +121,35 @@ export function AttentionList({
     const c = {} as Record<FilterKey, number>;
     for (const f of FILTERS) c[f.key] = items.filter((it) => matches(it, f.key)).length;
     return c;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, currentUserId]);
+     
+  }, [items]);
 
-  const grouped = useMemo(() => {
+  // Urgency order: overdue first, then risk, then soonest due.
+  const sections = useMemo(() => {
     const filtered = [...items.filter((it) => matches(it, filter))].sort(
-      (a, b) => (RISK_ORDER[a.risk] ?? 4) - (RISK_ORDER[b.risk] ?? 4)
+      (a, b) =>
+        Number(b.overdue) - Number(a.overdue) ||
+        (RISK_ORDER[a.risk] ?? 4) - (RISK_ORDER[b.risk] ?? 4) ||
+        a.dueTs - b.dueTs
     );
-    return GROUPS.map((g) => {
-      const inGroup = filtered.filter((it) => it.state === g.state);
+    const toCards = (list: AttentionItem[]): Card[] => {
       const byCandidate = new Map<string, AttentionItem[]>();
-      for (const it of inGroup) {
+      for (const it of list) {
         byCandidate.set(it.candidateId, [...(byCandidate.get(it.candidateId) ?? []), it]);
       }
-      const cards: Card[] = [...byCandidate.values()].map(([primary, ...alsoQueued]) => ({
+      return [...byCandidate.values()].map(([primary, ...alsoQueued]) => ({
         primary,
         alsoQueued,
       }));
-      return { ...g, cards };
-    }).filter((g) => g.cards.length > 0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    };
+    return [
+      { key: "yours", title: "Your actions", cards: toCards(filtered.filter((it) => it.ownerId === currentUserId)) },
+      { key: "team", title: "Team actions", cards: toCards(filtered.filter((it) => it.ownerId !== currentUserId)) },
+    ].filter((s) => s.cards.length > 0);
+     
   }, [items, filter, currentUserId]);
 
-  // The top-priority card starts expanded; clicking a row moves the spotlight.
-  const orderedIds = grouped.flatMap((g) => g.cards.map((c) => c.primary.actionId));
+  const orderedIds = sections.flatMap((s) => s.cards.map((c) => c.primary.actionId));
   const expandedId =
     selectedId === "__collapsed__"
       ? null
@@ -165,10 +183,10 @@ export function AttentionList({
         ))}
       </div>
 
-      {grouped.length === 0 ? (
+      {sections.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-14 text-center">
           <Inbox className="mb-2 size-5 text-muted-foreground" />
-          <p className="text-sm font-medium">No interventions needed</p>
+          <p className="text-sm font-medium">Nothing needs you</p>
           <p className="mt-0.5 text-[13px] text-muted-foreground">
             {filter === "all"
               ? "Every active candidate is owned, in SLA, and moving."
@@ -177,29 +195,24 @@ export function AttentionList({
         </div>
       ) : (
         <div className="space-y-4">
-          {grouped.map((g) => (
-            <section key={g.state} aria-label={g.title}>
+          {sections.map((s) => (
+            <section key={s.key} aria-label={s.title}>
               <div className="mb-1.5 flex items-baseline gap-2">
-                <StateBadge state={g.state} />
-                <h3 className="text-sm font-semibold">{g.title}</h3>
-                <span className="text-xs tabular-nums text-muted-foreground">
-                  {g.cards.length}
-                </span>
+                <h3 className="text-sm font-semibold">{s.title}</h3>
+                <span className="text-xs tabular-nums text-muted-foreground">{s.cards.length}</span>
               </div>
               <ul className="divide-y divide-border rounded-lg border border-border bg-card">
-                {g.cards.map(({ primary: it, alsoQueued }) => {
+                {s.cards.map(({ primary: it, alsoQueued }) => {
                   const expanded = it.actionId === expandedId;
                   return (
                     <li key={it.actionId}>
-                      {/* Triage row: who, why, whose court, when. */}
+                      {/* Verb-first row: the action, the button, the deadline. */}
                       <div
                         data-testid="intervention-row"
                         role="button"
                         tabIndex={0}
                         aria-expanded={expanded}
-                        onClick={() =>
-                          setSelectedId(expanded ? "__collapsed__" : it.actionId)
-                        }
+                        onClick={() => setSelectedId(expanded ? "__collapsed__" : it.actionId)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" || e.key === " ") {
                             e.preventDefault();
@@ -211,7 +224,11 @@ export function AttentionList({
                           expanded && "bg-muted/30"
                         )}
                       >
-                        {/* Fixed column widths so rows align vertically like a table. */}
+                        {it.status === "PROPOSED" ? (
+                          <RowApprove actionId={it.actionId} />
+                        ) : (
+                          <span className="w-[74px] shrink-0" aria-hidden />
+                        )}
                         <span
                           className={cn(
                             "size-1.5 shrink-0 rounded-full",
@@ -219,32 +236,28 @@ export function AttentionList({
                           )}
                           aria-hidden
                         />
-                        <Link
-                          href={`/candidates/${it.candidateId}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-32 shrink-0 truncate text-sm font-semibold hover:underline"
-                          title={it.candidateName}
-                        >
-                          {it.candidateName}
-                        </Link>
-                        <span
-                          className="hidden w-44 shrink-0 truncate text-xs text-muted-foreground lg:inline"
-                          title={it.roleTitle}
-                        >
-                          {it.roleTitle}
-                        </span>
-                        <span className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground">
-                          {it.blocker ?? it.actionTitle}
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                          {it.actionTitle}
                           {alsoQueued.length > 0 && (
-                            <span className="ml-1.5 rounded-full bg-muted px-1.5 text-[11px] tabular-nums">
+                            <span className="ml-1.5 rounded-full bg-muted px-1.5 text-[11px] font-normal tabular-nums text-muted-foreground">
                               +{alsoQueued.length}
                             </span>
                           )}
                         </span>
-                        <span className="hidden w-16 shrink-0 items-center gap-1 truncate text-xs text-muted-foreground md:flex">
-                          <UserRound className="size-3 shrink-0" />
-                          {it.ownerName.split(" ")[0]}
-                        </span>
+                        <Link
+                          href={`/candidates/${it.candidateId}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="hidden w-40 shrink-0 items-center gap-1.5 truncate text-xs text-muted-foreground hover:text-foreground hover:underline md:flex"
+                          title={`${it.candidateName} — ${it.roleTitle}`}
+                        >
+                          <UserAvatar name={it.candidateName} size="sm" />
+                          {it.candidateName}
+                        </Link>
+                        {s.key === "team" && (
+                          <span className="hidden w-14 shrink-0 truncate text-xs text-muted-foreground lg:inline">
+                            {it.ownerName.split(" ")[0]}
+                          </span>
+                        )}
                         <span
                           className={cn(
                             "w-16 shrink-0 text-right text-xs tabular-nums",
@@ -262,7 +275,7 @@ export function AttentionList({
                         )}
                       </div>
 
-                      {/* Spotlight: the full anatomy, one card at a time. */}
+                      {/* Spotlight: full anatomy for the selected action. */}
                       {expanded && (
                         <div className="border-t border-border/60 px-4 pb-4 pt-3">
                           <div className="flex flex-wrap items-center gap-1.5">
@@ -287,12 +300,7 @@ export function AttentionList({
                           <div className="mt-2.5 rounded-md border border-border bg-muted/40 p-2.5">
                             <p className="flex items-start gap-1.5 text-sm leading-snug">
                               <ArrowRight className="mt-0.5 size-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
-                              <span>
-                                <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                  Relay will:
-                                </span>{" "}
-                                <span className="font-medium">{it.actionTitle}</span>
-                              </span>
+                              <span className="font-medium">{it.actionTitle}</span>
                             </p>
                             <p className="mt-1 whitespace-pre-line pl-5 text-[13px] leading-relaxed text-muted-foreground">
                               {it.proposedContent}
@@ -326,32 +334,29 @@ export function AttentionList({
 
                           {alsoQueued.length > 0 && (
                             <div className="mt-2.5 space-y-1.5 border-t border-border pt-2.5">
-                              {alsoQueued.map((s) => (
+                              {alsoQueued.map((q) => (
                                 <div
-                                  key={s.actionId}
+                                  key={q.actionId}
                                   className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-2.5 py-1.5"
                                 >
                                   <p className="min-w-0 text-[13px] leading-snug">
-                                    <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                      Also queued:
-                                    </span>{" "}
-                                    <span className="font-medium">{s.actionTitle}</span>{" "}
+                                    <span className="font-medium">{q.actionTitle}</span>{" "}
                                     <span
                                       className={cn(
                                         "text-muted-foreground",
-                                        s.overdue && "font-medium text-red-600 dark:text-red-400"
+                                        q.overdue && "font-medium text-red-600 dark:text-red-400"
                                       )}
                                     >
-                                      · due {s.dueLabel}
+                                      · due {q.dueLabel}
                                     </span>
                                   </p>
                                   <ActionControls
                                     action={{
-                                      id: s.actionId,
-                                      title: s.actionTitle,
-                                      proposedContent: s.proposedContent,
-                                      status: s.status,
-                                      risk: s.risk,
+                                      id: q.actionId,
+                                      title: q.actionTitle,
+                                      proposedContent: q.proposedContent,
+                                      status: q.status,
+                                      risk: q.risk,
                                     }}
                                     size="xs"
                                   />

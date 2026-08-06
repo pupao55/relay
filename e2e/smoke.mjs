@@ -39,17 +39,18 @@ for (const tile of [
   check(`tile: ${tile}`, (await page.locator(`text=${tile}`).count()) > 0);
 }
 
-const withdrawalGroup = page.locator("section[aria-label='Immediate withdrawal risk']");
-check("withdrawal-risk group renders first-class", (await withdrawalGroup.count()) === 1);
+// Verb-first action queue: Yours/Team sections, urgency order, row-level Approve.
+check("your-actions section renders", (await page.locator("section[aria-label='Your actions']").count()) === 1);
+check("team-actions section renders", (await page.locator("section[aria-label='Team actions']").count()) === 1);
+const firstRow = page.locator("[data-testid='intervention-row']").first();
 check(
-  "Maya Chen sits in withdrawal-risk group",
-  (await withdrawalGroup.locator("text=Maya Chen").count()) > 0
+  "highest-risk action is first (Maya's escalation)",
+  /Maya Chen/.test(await firstRow.innerText())
 );
-check(
-  "unowned error-state group renders",
-  (await page.locator("section[aria-label='Unowned — error state']").count()) === 1
-);
-// Triage rows for scanning; exactly one spotlight expanded with the full anatomy.
+const rowApproveCount = await page
+  .locator("[data-testid='intervention-row'] button:has-text('Approve')")
+  .count();
+check("rows lead with an Approve button", rowApproveCount >= 5, `${rowApproveCount} row buttons`);
 const rowCount = await page.locator("[data-testid='intervention-row']").count();
 check("triage rows render", rowCount >= 5, `${rowCount} rows`);
 check(
@@ -228,13 +229,7 @@ check("new pipeline has a next action from minute one", /redirected application/
 await page.goto(BASE + "/", { waitUntil: "networkidle" });
 const tomasCard = page.locator("li", { has: page.locator("a", { hasText: "Tomás Silva" }) }).first();
 if (await tomasCard.count()) {
-  // Click the triage row to move the spotlight, then approve.
-  await tomasCard.locator("[data-testid='intervention-row']").click();
-  await page.waitForTimeout(400);
-  check(
-    "clicking a row moves the spotlight",
-    (await tomasCard.locator("button:has-text('Approve')").count()) >= 1
-  );
+  // Row-level approve — no need to open the spotlight first.
   await tomasCard.locator("button:has-text('Approve')").first().click();
   await page.waitForSelector("text=Action performed", { timeout: 8000 });
   const schedReceipt = await page.locator("[role='dialog']").innerText();
@@ -318,6 +313,11 @@ check(
   (await page.locator("aside").first().innerText()).includes("James Wu")
 );
 check("HM persona sees their own queue labeled", (await page.locator("text=your queue").count()) >= 1);
+check(
+  "HM home leads with their review work",
+  (await page.locator("text=Waiting on your review").count()) >= 1 &&
+    (await page.locator("text=Scorecards you owe").count()) >= 1
+);
 await page.locator("button[aria-label='Switch persona']").first().click();
 await page.locator("[role='menuitem']:has-text('Sarah Kim')").click();
 await page.waitForTimeout(1500);

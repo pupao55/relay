@@ -4,10 +4,12 @@
 // review sheet uses; a label column keeps every section aligned across
 // candidates so differences read row by row.
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
-import { Check, Columns2, Minus, Timer } from "lucide-react";
+import { ArrowUpToLine, Check, Columns2, Minus, Timer } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { rankCandidateTop } from "@/lib/actions";
 import {
   Dialog,
   DialogContent,
@@ -27,8 +29,15 @@ function Label({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function CompareDialog({ items }: { items: (HmReviewData & { candidateId: string })[] }) {
+export function CompareDialog({
+  items,
+  rankable = false,
+}: {
+  items: (HmReviewData & { candidateId: string })[];
+  rankable?: boolean;
+}) {
   const [open, setOpen] = useState(false);
+  const [pending, startTransition] = useTransition();
   const cols = items.slice(0, 3);
 
   // When every candidate is measured against the same criteria (same role),
@@ -79,6 +88,23 @@ export function CompareDialog({ items }: { items: (HmReviewData & { candidateId:
                   <Timer className="mt-0.5 size-3 shrink-0" />
                   {c.timingRisk}
                 </p>
+              )}
+              {rankable && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 h-6 gap-1 px-2 text-xs"
+                  disabled={pending}
+                  onClick={() =>
+                    startTransition(async () => {
+                      await rankCandidateTop(c.applicationId);
+                      toast.success(`${c.candidateName} ranked #1`);
+                      setOpen(false);
+                    })
+                  }
+                >
+                  <ArrowUpToLine className="size-3" /> Put first
+                </Button>
               )}
             </div>
           ))}

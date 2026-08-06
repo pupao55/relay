@@ -999,6 +999,43 @@ export async function rankCandidate(applicationId: string, direction: "up" | "do
   refresh();
 }
 
+/** Move a candidate to #1 in their hiring manager's review queue. */
+export async function rankCandidateTop(applicationId: string) {
+  const app = await db.application.findUniqueOrThrow({
+    where: { id: applicationId },
+    include: { candidate: true, role: { include: { hiringManager: true } } },
+  });
+  const peers = await db.application.findMany({
+    where: {
+      status: "ACTIVE",
+      stage: { name: "Hiring Manager Review" },
+      role: { hiringManagerId: app.role.hiringManagerId },
+    },
+  });
+  peers.sort(
+    (a, b) =>
+      (a.hmRank ?? Number.MAX_SAFE_INTEGER) - (b.hmRank ?? Number.MAX_SAFE_INTEGER) ||
+      a.stageEnteredAt.getTime() - b.stageEnteredAt.getTime()
+  );
+  const idx = peers.findIndex((p) => p.id === applicationId);
+  if (idx <= 0) return;
+  const [target] = peers.splice(idx, 1);
+  peers.unshift(target);
+  for (let i = 0; i < peers.length; i++) {
+    await db.application.update({ where: { id: peers[i].id }, data: { hmRank: i + 1 } });
+  }
+  await audit({
+    applicationId,
+    actorType: "HUMAN",
+    actorName: app.role.hiringManager.name,
+    eventType: "RANK_CHANGED",
+    title: `${app.role.hiringManager.name} ranked ${app.candidate.name} #1 of ${peers.length} in their review queue`,
+    previousState: `#${idx + 1}`,
+    newState: "#1",
+  });
+  refresh();
+}
+
 export async function addNote(applicationId: string, body: string) {
   const user = await currentUser();
   if (!body.trim()) return;
