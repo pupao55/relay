@@ -40,7 +40,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full bg-background font-sans text-foreground">
         <div className="flex min-h-screen">
           <AppSidebar
-            currentUser={{ id: currentUser.id, name: currentUser.name, title: currentUser.title }}
+            currentUser={{
+              id: currentUser.id,
+              name: currentUser.name,
+              title: currentUser.title,
+              userRole: currentUser.userRole,
+            }}
             personas={personas}
           />
           <main className="min-w-0 flex-1 md:pl-56">

@@ -39,6 +39,9 @@ const NAV = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
+// Hiring managers decide; recruiters operate. The nav reflects the job.
+const HM_NAV_HREFS = ["/", "/candidates", "/roles"];
+
 export interface Persona {
   id: string;
   name: string;
@@ -46,11 +49,19 @@ export interface Persona {
   userRole: string;
 }
 
-function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
+function NavLinks({
+  onNavigate,
+  userRole,
+}: {
+  onNavigate?: () => void;
+  userRole: string;
+}) {
   const pathname = usePathname();
+  const nav =
+    userRole === "HIRING_MANAGER" ? NAV.filter((n) => HM_NAV_HREFS.includes(n.href)) : NAV;
   return (
     <nav className="flex flex-1 flex-col gap-0.5 px-2" aria-label="Primary">
-      {NAV.map((item) => {
+      {nav.map((item) => {
         const active =
           item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
         const Icon = item.icon;
@@ -80,7 +91,7 @@ function PersonaSwitcher({
   currentUser,
   personas,
 }: {
-  currentUser: { id: string; name: string; title: string };
+  currentUser: { id: string; name: string; title: string; userRole: string };
   personas: Persona[];
 }) {
   const [pending, startTransition] = useTransition();
@@ -113,6 +124,8 @@ function PersonaSwitcher({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
+        <DropdownMenuLabel className="text-xs font-semibold">View as (demo)</DropdownMenuLabel>
+        <DropdownMenuSeparator />
         <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
           Recruiters
         </DropdownMenuLabel>
@@ -144,7 +157,7 @@ function SidebarContent({
   personas,
   onNavigate,
 }: {
-  currentUser: { id: string; name: string; title: string };
+  currentUser: { id: string; name: string; title: string; userRole: string };
   personas: Persona[];
   onNavigate?: () => void;
 }) {
@@ -159,7 +172,7 @@ function SidebarContent({
           Helios
         </span>
       </div>
-      <NavLinks onNavigate={onNavigate} />
+      <NavLinks onNavigate={onNavigate} userRole={currentUser.userRole} />
       <div className="border-t border-border px-2.5 py-2.5">
         <PersonaSwitcher currentUser={currentUser} personas={personas} />
       </div>
@@ -171,7 +184,7 @@ export function AppSidebar({
   currentUser,
   personas,
 }: {
-  currentUser: { id: string; name: string; title: string };
+  currentUser: { id: string; name: string; title: string; userRole: string };
   personas: Persona[];
 }) {
   const [open, setOpen] = useState(false);

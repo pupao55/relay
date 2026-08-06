@@ -318,6 +318,11 @@ check(
   (await page.locator("text=Waiting on your review").count()) >= 1 &&
     (await page.locator("text=Scorecards you owe").count()) >= 1
 );
+const hmNav = await page.locator("nav[aria-label='Primary']").first().innerText();
+check(
+  "HM nav hides recruiter operations",
+  !hmNav.includes("Automations") && !hmNav.includes("Settings") && hmNav.includes("Candidates")
+);
 await page.locator("button[aria-label='Switch persona']").first().click();
 await page.locator("[role='menuitem']:has-text('Sarah Kim')").click();
 await page.waitForTimeout(1500);
