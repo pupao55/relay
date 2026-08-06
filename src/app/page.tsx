@@ -187,6 +187,19 @@ export default async function CommandCenterPage() {
     data: buildReview(app),
   }));
 
+  // Candidate and action are separate modules on the queue row, so the action
+  // label must not embed the candidate's name (titles do, for audit clarity).
+  const stripCandidate = (title: string, name: string): string => {
+    let t = title.replaceAll(`${name}'s`, "").replaceAll(name, "");
+    t = t
+      .replace(/\s{2,}/g, " ")
+      .trim()
+      .replace(/^[—:,\s]+/, "")
+      .replace(/\s+(for|to|about|on)\s*$/i, "")
+      .replace(/[—:,\s]+$/, "");
+    return t.charAt(0).toUpperCase() + t.slice(1);
+  };
+
   const items: AttentionItem[] = proposedActions.map((a) => {
     const due = dueLabel(a.dueAt, now);
     const app = a.application;
@@ -197,6 +210,7 @@ export default async function CommandCenterPage() {
     return {
       actionId: a.id,
       actionTitle: a.title,
+      actionLabel: stripCandidate(a.title, cand.name),
       proposedContent: a.proposedContent,
       rationale: a.rationale,
       escalationNote: a.escalationNote,
@@ -442,7 +456,7 @@ export default async function CommandCenterPage() {
                         >
                           {i.candidateName}
                         </Link>
-                        <span className="text-muted-foreground"> — {i.actionTitle}</span>
+                        <span className="text-muted-foreground"> — {i.actionLabel}</span>
                       </li>
                     ))}
                   </ul>

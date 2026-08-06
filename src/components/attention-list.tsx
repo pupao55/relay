@@ -28,6 +28,8 @@ import { approveAction } from "@/lib/actions";
 export interface AttentionItem {
   actionId: string;
   actionTitle: string;
+  /** The action without the candidate's name — the row shows them separately. */
+  actionLabel: string;
   proposedContent: string;
   rationale: string;
   escalationNote: string | null;
@@ -205,10 +207,21 @@ export function AttentionList({
             className={cn("size-1.5 shrink-0 rounded-full", EXECUTION_STATE_META[it.state].dot)}
             aria-hidden
           />
-          <span className="min-w-0 flex-1 truncate text-sm font-medium">
-            {it.actionTitle}
+          {/* Candidate module */}
+          <Link
+            href={`/candidates/${it.candidateId}`}
+            onClick={(e) => e.stopPropagation()}
+            className="flex w-40 shrink-0 items-center gap-1.5 truncate text-sm font-semibold hover:underline"
+            title={`${it.candidateName} — ${it.roleTitle}`}
+          >
+            <UserAvatar name={it.candidateName} size="sm" />
+            <span className="truncate">{it.candidateName}</span>
+          </Link>
+          {/* Action module */}
+          <span className="min-w-0 flex-1 truncate text-sm">
+            {it.actionLabel}
             {alsoQueued.length > 0 && (
-              <span className="ml-1.5 rounded-full bg-muted px-1.5 text-[11px] font-normal tabular-nums text-muted-foreground">
+              <span className="ml-1.5 rounded-full bg-muted px-1.5 text-[11px] tabular-nums text-muted-foreground">
                 +{alsoQueued.length}
               </span>
             )}
@@ -297,7 +310,7 @@ export function AttentionList({
                     className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-2.5 py-1.5"
                   >
                     <p className="min-w-0 text-[13px] leading-snug">
-                      <span className="font-medium">{q.actionTitle}</span>{" "}
+                      <span className="font-medium">{q.actionLabel}</span>{" "}
                       <span
                         className={cn(
                           "text-muted-foreground",
