@@ -287,8 +287,8 @@ async function main() {
       strengths: ["8 years systematic futures research", "Execution-cost-aware modeling", "kdb+/q fluency"],
       concerns: ["Equities experience is limited", "Two pod moves in 4 years"],
       prior: [{ company: "Millennium", title: "Senior Quant Analyst", years: "2019–now" }, { company: "SocGen", title: "Quant Analyst", years: "2016–2019" }],
-      roleId: quantRole.id, sourceId: srcInbound.id, stage: "Recruiter Review",
-      appliedDaysAgo: 2.2, stageEnteredHoursAgo: 52, lastActivityHoursAgo: 52, lastCandidateUpdateHoursAgo: 52,
+      roleId: quantRole.id, sourceId: srcInbound.id, stage: "Hiring Manager Review",
+      appliedDaysAgo: 3.2, stageEnteredHoursAgo: 26, lastActivityHoursAgo: 26, lastCandidateUpdateHoursAgo: 30,
     },
     {
       name: "Alina Volkov", email: "alina.volkov@proton.me", location: "New York, NY",
@@ -672,6 +672,11 @@ async function main() {
   await mkComm("Yuna Park", "OUTBOUND", "EMAIL", "Rescheduling your technical interview", "Hi Yuna, completely understood re: the family emergency — no rush at all. Let me know when you're ready to pick a new time.", tom, 195, true);
   await mkComm("Sofia Marino", "OUTBOUND", "EMAIL", "Update on your Research Engineer application", "Hi Sofia, thank you for the deep conversations with our panel. We've decided not to move forward for this particular role — but we were genuinely impressed and may be in touch about a better fit.", marcus, 72, true);
 
+  // Internal review notes — visible in the HM review sheet and on timelines.
+  await mkComm("Hannah Goldberg", "INTERNAL", "NOTE", "Review note", "Referral signal is strong — fast-track if the phone screen confirms the C++ depth.", dana, 15, false);
+  await mkComm("Daniel Reyes", "INTERNAL", "NOTE", "Review note", "Second quant candidate for James — worth ranking against Maya before Thursday's desk sync.", sarah, 20, false);
+  await mkComm("Chris Thompson", "INTERNAL", "NOTE", "Review note", "Kenji is traveling this week — may need a desk-head ping to get the review done.", tom, 40, false);
+
   // ---------------- Human-owned open actions (healthy pipelines) ----------------
   const mkAction = (
     appName: string, type: string, title: string, content: string, rationale: string,
@@ -695,6 +700,12 @@ async function main() {
     "Onsite is confirmed for Thursday; the panel needs the brief 24h ahead.",
     ["Onsite scheduled Thursday 10:00", "Panel: Ben Torres, David Stein, James Wu"],
     sarah, null, "IN_PROGRESS", "LOW", 18, 20);
+
+  await mkAction("Daniel Reyes", "TASK", "Review Daniel Reyes' profile",
+    "Review against the quant criteria and rank against Maya Chen before the desk sync.",
+    "Second candidate in James's review queue; 26h in, inside the 48h SLA.",
+    ["Entered Hiring Manager Review 26h ago", "James also has Maya Chen waiting (higher urgency)"],
+    james, null, "IN_PROGRESS", "LOW", 20, 24);
 
   await mkAction("Hannah Goldberg", "TASK", "Review Hannah Goldberg's profile",
     "Review profile and confirm advance to phone screen. Referral from HRT contact — internal signal is strong.",

@@ -790,6 +790,77 @@ export async function hmReviewDecision(
   };
 }
 
+/**
+ * Internal note from the review sheet, attributed to the role's hiring
+ * manager (the sheet acts as the HM). Visible on the candidate timeline.
+ */
+export async function addReviewNote(applicationId: string, body: string) {
+  if (!body.trim()) return;
+  const app = await db.application.findUniqueOrThrow({
+    where: { id: applicationId },
+    include: { role: { include: { hiringManager: true } } },
+  });
+  await db.communication.create({
+    data: {
+      applicationId,
+      direction: "INTERNAL",
+      channel: "NOTE",
+      subject: "Review note",
+      body: body.trim(),
+      sentById: app.role.hiringManagerId,
+      sentAt: new Date(),
+      candidateFacing: false,
+    },
+  });
+  await db.application.update({
+    where: { id: applicationId },
+    data: { lastActivityAt: new Date() },
+  });
+  refresh();
+}
+
+/**
+ * Move a candidate up or down within their hiring manager's review queue.
+ * Ranks are per (hiring manager, Hiring Manager Review stage): after the swap,
+ * every peer gets a dense 1..n rank so ordering is stable.
+ */
+export async function rankCandidate(applicationId: string, direction: "up" | "down") {
+  const app = await db.application.findUniqueOrThrow({
+    where: { id: applicationId },
+    include: { candidate: true, role: { include: { hiringManager: true } } },
+  });
+  const peers = await db.application.findMany({
+    where: {
+      status: "ACTIVE",
+      stage: { name: "Hiring Manager Review" },
+      role: { hiringManagerId: app.role.hiringManagerId },
+    },
+    include: { candidate: true },
+  });
+  peers.sort(
+    (a, b) =>
+      (a.hmRank ?? Number.MAX_SAFE_INTEGER) - (b.hmRank ?? Number.MAX_SAFE_INTEGER) ||
+      a.stageEnteredAt.getTime() - b.stageEnteredAt.getTime()
+  );
+  const idx = peers.findIndex((p) => p.id === applicationId);
+  const swapWith = direction === "up" ? idx - 1 : idx + 1;
+  if (idx < 0 || swapWith < 0 || swapWith >= peers.length) return;
+  [peers[idx], peers[swapWith]] = [peers[swapWith], peers[idx]];
+  for (let i = 0; i < peers.length; i++) {
+    await db.application.update({ where: { id: peers[i].id }, data: { hmRank: i + 1 } });
+  }
+  await audit({
+    applicationId,
+    actorType: "HUMAN",
+    actorName: app.role.hiringManager.name,
+    eventType: "RANK_CHANGED",
+    title: `${app.role.hiringManager.name} ranked ${app.candidate.name} #${swapWith + 1} of ${peers.length} in their review queue`,
+    previousState: `#${idx + 1}`,
+    newState: `#${swapWith + 1}`,
+  });
+  refresh();
+}
+
 export async function addNote(applicationId: string, body: string) {
   const user = await currentUser();
   if (!body.trim()) return;

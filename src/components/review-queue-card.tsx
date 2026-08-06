@@ -1,13 +1,16 @@
 "use client";
 
 // The hiring-manager side of the loop: every candidate waiting on an HM
-// review, visible before the SLA breaches — not after. One click opens the
-// same lightweight review sheet used everywhere else.
+// review, visible before the SLA breaches. Managers control their own order —
+// the rank arrows persist a stack rank per manager, and one click opens the
+// review sheet.
 
+import { useTransition } from "react";
 import Link from "next/link";
-import { UserRoundSearch } from "lucide-react";
+import { ChevronDown, ChevronUp, UserRoundSearch } from "lucide-react";
 import { HmReviewSheet, type HmReviewData } from "@/components/hm-review-sheet";
 import { UserAvatar } from "@/components/user-avatar";
+import { rankCandidate } from "@/lib/actions";
 import { cn } from "@/lib/utils";
 
 export interface ReviewQueueItem {
@@ -21,6 +24,8 @@ export interface ReviewQueueItem {
 }
 
 export function ReviewQueueCard({ items }: { items: ReviewQueueItem[] }) {
+  const [pending, startTransition] = useTransition();
+
   if (items.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-card p-4">
@@ -36,6 +41,11 @@ export function ReviewQueueCard({ items }: { items: ReviewQueueItem[] }) {
     byHm.set(it.hmName, [...(byHm.get(it.hmName) ?? []), it]);
   }
 
+  const move = (applicationId: string, direction: "up" | "down") =>
+    startTransition(async () => {
+      await rankCandidate(applicationId, direction);
+    });
+
   return (
     <div className="rounded-lg border border-border bg-card p-4">
       <div className="space-y-3">
@@ -45,16 +55,41 @@ export function ReviewQueueCard({ items }: { items: ReviewQueueItem[] }) {
               <UserAvatar name={hm} size="sm" />
               <span className="text-xs font-medium">{hm}</span>
               <span className="text-[11px] text-muted-foreground">
-                {list.length} waiting
+                {list.length} waiting{list.length > 1 ? " · their ranking" : ""}
               </span>
             </div>
             <ul className="mt-1.5 space-y-1.5">
-              {list.map((it) => (
+              {list.map((it, i) => (
                 <li
                   key={it.data.applicationId}
-                  className="flex items-center justify-between gap-2 rounded-md border border-border px-2 py-1.5"
+                  className="flex items-center gap-1.5 rounded-md border border-border px-2 py-1.5"
                 >
-                  <div className="min-w-0">
+                  {list.length > 1 && (
+                    <div className="flex shrink-0 flex-col items-center">
+                      <button
+                        type="button"
+                        aria-label={`Move ${it.candidateName} up`}
+                        disabled={pending || i === 0}
+                        onClick={() => move(it.data.applicationId, "up")}
+                        className="rounded p-px text-muted-foreground hover:text-foreground disabled:opacity-30"
+                      >
+                        <ChevronUp className="size-3.5" />
+                      </button>
+                      <span className="text-[10px] font-semibold tabular-nums text-muted-foreground">
+                        {i + 1}
+                      </span>
+                      <button
+                        type="button"
+                        aria-label={`Move ${it.candidateName} down`}
+                        disabled={pending || i === list.length - 1}
+                        onClick={() => move(it.data.applicationId, "down")}
+                        className="rounded p-px text-muted-foreground hover:text-foreground disabled:opacity-30"
+                      >
+                        <ChevronDown className="size-3.5" />
+                      </button>
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
                     <Link
                       href={`/candidates/${it.candidateId}`}
                       className="block truncate text-xs font-medium hover:underline"
@@ -77,8 +112,8 @@ export function ReviewQueueCard({ items }: { items: ReviewQueueItem[] }) {
       </div>
       <p className="mt-3 flex items-start gap-1.5 border-t border-border pt-2.5 text-[10.5px] leading-snug text-muted-foreground">
         <UserRoundSearch className="mt-px size-3 shrink-0" />
-        Each review takes under a minute: summary, criteria fit, concern, timing — then
-        Advance, Request info, Redirect, or Decline.
+        Each review takes under a minute: summary, history, criteria fit, concern, timing, notes —
+        then Advance, Request info, Redirect, or Decline. Arrows set your own priority order.
       </p>
     </div>
   );

@@ -119,6 +119,15 @@ export default async function CandidateDetailPage({
               : null,
           timeInStage: durationSince(app.stageEnteredAt, now),
           sourceName: app.source.name,
+          history: prior.map((p) => `${p.company} · ${p.title} · ${p.years}`),
+          notes: app.communications
+            .filter((c) => c.channel === "NOTE")
+            .slice(0, 3)
+            .map((c) => ({
+              author: c.sentBy?.name ?? "Team",
+              when: `${durationSince(c.sentAt, now)} ago`,
+              body: c.body,
+            })),
         }
       : null;
 

@@ -53,6 +53,23 @@ check(
   "cards state escalation behavior",
   (await page.locator("text=If no one responds").count()) >= 3
 );
+
+// HM stack ranking: James Wu has Maya (#1) and Daniel (#2) waiting; the
+// manager controls the order themselves.
+const danielLi = page.locator("li", { has: page.locator("text=Daniel Reyes") }).first();
+check(
+  "rank arrows shown for multi-candidate queue",
+  (await danielLi.locator("button[aria-label='Move Daniel Reyes up']").count()) === 1
+);
+await danielLi.locator("button[aria-label='Move Daniel Reyes up']").click();
+await page.waitForTimeout(2500);
+const danielRank = await page
+  .locator("li", { has: page.locator("text=Daniel Reyes") })
+  .first()
+  .locator("span")
+  .first()
+  .innerText();
+check("manager reorder persists (Daniel now #1)", danielRank.trim() === "1", `rank ${danielRank.trim()}`);
 await shot("01-command-center");
 
 // ---------------------------------------------------------------------------
@@ -127,7 +144,7 @@ check("timeline: next action creation audited", /Created next action/i.test(time
 await shot("05-maya-timeline");
 
 // ---------------------------------------------------------------------------
-// 3b. HM review queue: pre-SLA visibility + keyboard decisions
+// 3b. HM review queue: pre-SLA visibility, internal notes, one-click advance
 // ---------------------------------------------------------------------------
 await page.goto(BASE + "/", { waitUntil: "networkidle" });
 check("review queue card renders", (await page.locator("text=Review queue").count()) > 0);
@@ -137,14 +154,21 @@ const hannahRow = page.locator("li", { has: page.locator("text=Hannah Goldberg")
 check("in-SLA candidate visible to HM queue", (await hannahRow.count()) === 1);
 await hannahRow.locator("button:has-text('Review')").click();
 await page.waitForTimeout(600);
+const hannahSheet = await page.locator("[role='dialog']").innerText();
+check("sheet shows existing internal note", /Referral signal is strong/.test(hannahSheet));
+check("sheet shows work history", /MEng/.test(hannahSheet));
+await page.locator("[role='dialog'] textarea").fill("Portfolio review done — solid systems depth.");
+await page.locator("[role='dialog'] button:has-text('Save note')").click();
+await page.waitForTimeout(2500);
 check(
-  "sheet shows keyboard hints",
-  (await page.locator("[role='dialog'] kbd").count()) === 4
+  "saved note appears without closing the sheet",
+  /Portfolio review done/.test(await page.locator("[role='dialog']").innerText())
 );
-await page.keyboard.press("a");
+await shot("03b-review-notes");
+await page.locator("[role='dialog'] button:has-text('Advance')").click();
 await page.waitForSelector("text=Advanced", { timeout: 8000 });
 const hannahReceipt = await page.locator("[role='dialog']").innerText();
-check("keyboard Advance works from review queue", /Phone Screen/.test(hannahReceipt));
+check("advance from review queue works", /Phone Screen/.test(hannahReceipt));
 await page.locator("[role='dialog'] button:has-text('Done')").click();
 await page.waitForTimeout(1500);
 

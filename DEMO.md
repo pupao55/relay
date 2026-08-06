@@ -25,10 +25,12 @@ action, and the escalation clock now running. Close it — the card has left the
 
 **1:00 — Point at the Review queue in the right rail.** Every candidate waiting on a
 hiring manager, grouped by manager, *before* the SLA breaches — Hannah Goldberg is only
-20 hours in and already visible. Click **Review** on Maya (or open it from her profile).
-This is James's entire experience: summary, 4/4 fit against *his* criteria, the one
-concern (comp at top of band), the timing banner, résumé, and four buttons — with
-keyboard shortcuts (A / I / R / D). No ATS navigation, no tabs.
+20 hours in and already visible. James has two waiting; the arrows let *him* rank them
+(his order persists and is logged). Click **Review** on Maya (or open it from her
+profile). This is James's entire experience: summary, work history, 4/4 fit against
+*his* criteria, the one concern (comp at top of band), the timing banner, résumé, the
+team's internal notes — he can add his own without deciding — and four buttons. No ATS
+navigation, no tabs.
 
 **1:20 — Click Advance.** The decision receipt shows the whole state change: Hiring
 Manager Review → Phone Screen, momentum **At Risk → Moving**, and the next action Relay
@@ -55,10 +57,10 @@ doesn't, Relay treats it as an error."
 - Point out the queue grouping: **withdrawal risk → unowned → blocked → overdue** —
   urgency order, not stage order. One card per candidate; further queued actions ride
   along as "Also queued" rows.
-- Show the right rail: the **Review queue** (every pending HM review, one click to
-  decide), **Waiting on replies** (whose court the ball is in, with reply deadlines),
-  and **idle candidate-days** — days candidates sat without activity, and how many of
-  those days completed Relay actions closed out this week.
+- Show the right rail: the **Review queue** (every pending HM review, manager-controlled
+  ranking, one click to decide), **Waiting on replies** (whose court the ball is in,
+  with reply deadlines), and **idle candidate-days** — days candidates sat without
+  activity, and how many of those days completed Relay actions closed out this week.
 
 ## 2:20 — The error state
 

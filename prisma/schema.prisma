@@ -149,6 +149,9 @@ model Application {
   // Why the candidate was rejected, when status = REJECTED (used for redirection logic)
   resolutionReason   String?
 
+  // Hiring manager's own stack rank within their review queue (1 = top).
+  hmRank Int?
+
   appliedAt             DateTime
   stageEnteredAt        DateTime
   lastActivityAt        DateTime

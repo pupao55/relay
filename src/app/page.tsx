@@ -57,6 +57,12 @@ export default async function CommandCenterPage() {
             source: true,
             stage: true,
             role: { include: { hiringManager: true, recruiter: true } },
+            communications: {
+              where: { channel: "NOTE" },
+              orderBy: { sentAt: "desc" },
+              take: 3,
+              include: { sentBy: true },
+            },
           },
         },
       },
@@ -80,6 +86,12 @@ export default async function CommandCenterPage() {
         source: true,
         stage: true,
         role: { include: { hiringManager: true, recruiter: true } },
+        communications: {
+          where: { channel: "NOTE" },
+          orderBy: { sentAt: "desc" },
+          take: 3,
+          include: { sentBy: true },
+        },
       },
       orderBy: { stageEnteredAt: "asc" },
     }),
@@ -115,13 +127,23 @@ export default async function CommandCenterPage() {
     candidate: (typeof proposedActions)[number]["application"]["candidate"];
     source: { name: string };
     role: { title: string; requiredCriteria: string; hiringManager: { name: string } };
+    communications: { body: string; sentAt: Date; sentBy: { name: string } | null }[];
   }): HmReviewData => {
     const cand = app.candidate;
     const strengths: string[] = JSON.parse(cand.strengths);
     const concerns: string[] = JSON.parse(cand.concerns);
     const required: string[] = JSON.parse(app.role.requiredCriteria);
+    const prior: { company: string; title: string; years: string }[] = JSON.parse(
+      cand.priorCompanies
+    );
     const profileText = (strengths.join(" ") + " " + cand.summary).toLowerCase();
     return {
+      history: prior.map((p) => `${p.company} · ${p.title} · ${p.years}`),
+      notes: app.communications.map((c) => ({
+        author: c.sentBy?.name ?? "Team",
+        when: `${durationSince(c.sentAt, now)} ago`,
+        body: c.body,
+      })),
       applicationId: app.id,
       candidateName: cand.name,
       currentTitle: cand.currentTitle,
@@ -146,6 +168,12 @@ export default async function CommandCenterPage() {
     };
   };
 
+  // Managers' own stack rank first; unranked candidates fall back to wait time.
+  hmQueueApps.sort(
+    (a, b) =>
+      (a.hmRank ?? Number.MAX_SAFE_INTEGER) - (b.hmRank ?? Number.MAX_SAFE_INTEGER) ||
+      a.stageEnteredAt.getTime() - b.stageEnteredAt.getTime()
+  );
   const reviewQueue: ReviewQueueItem[] = hmQueueApps.map((app) => ({
     hmName: app.role.hiringManager.name,
     candidateId: app.candidateId,
