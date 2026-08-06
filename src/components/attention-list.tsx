@@ -7,7 +7,6 @@ import {
   ChevronDown,
   ChevronRight,
   CircleAlert,
-  Clock,
   Inbox,
   ShieldAlert,
   UserRound,
@@ -277,27 +276,13 @@ export function AttentionList({
                             </span>
                           </div>
 
-                          <div className="mt-2 space-y-0.5">
-                            {it.blocker && (
-                              <p className="flex items-start gap-1.5 text-[13px] leading-snug">
-                                <CircleAlert className="mt-0.5 size-3.5 shrink-0 text-red-500" />
-                                <span>
-                                  <span className="font-medium">Blocked:</span>{" "}
-                                  <span className="text-muted-foreground">{it.blocker}</span>
-                                </span>
-                              </p>
-                            )}
-                            <p className="flex items-start gap-1.5 text-[13px] leading-snug">
-                              <Clock className="mt-0.5 size-3.5 shrink-0 text-amber-600" />
-                              <span>
-                                <span className="font-medium">Why now:</span>{" "}
-                                <span className="text-muted-foreground">
-                                  {it.context ? `${it.context}. ` : ""}
-                                  {it.rationale}
-                                </span>
-                              </span>
-                            </p>
-                          </div>
+                          <p className="mt-2 flex items-start gap-1.5 text-[13px] leading-snug">
+                            <CircleAlert className="mt-0.5 size-3.5 shrink-0 text-red-500" />
+                            <span className="text-muted-foreground">
+                              {it.blocker ?? it.rationale}
+                              {it.context ? ` — ${it.context}` : ""}
+                            </span>
+                          </p>
 
                           <div className="mt-2.5 rounded-md border border-border bg-muted/40 p-2.5">
                             <p className="flex items-start gap-1.5 text-sm leading-snug">

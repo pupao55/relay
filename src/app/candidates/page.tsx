@@ -56,9 +56,6 @@ export default async function CandidatesPage() {
     <div>
       <div className="mb-5">
         <h1 className="text-xl font-semibold tracking-tight">Candidates</h1>
-        <p className="text-sm text-muted-foreground">
-          Every application, its momentum, and its next action.
-        </p>
       </div>
       <CandidatesTable
         rows={rows}

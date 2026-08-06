@@ -56,9 +56,6 @@ export default async function RolesPage() {
     <div>
       <div className="mb-5">
         <h1 className="text-xl font-semibold tracking-tight">Roles</h1>
-        <p className="text-sm text-muted-foreground">
-          Open roles with pipeline health and unresolved work.
-        </p>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-border bg-card">

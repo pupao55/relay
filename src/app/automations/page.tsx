@@ -22,10 +22,6 @@ export default async function AutomationsPage() {
     <div>
       <div className="mb-2">
         <h1 className="text-xl font-semibold tracking-tight">Automations</h1>
-        <p className="text-sm text-muted-foreground">
-          The rules Relay runs on every agent pass. High-risk actions (rejections, offers,
-          external messages) always require human approval, whatever the mode.
-        </p>
       </div>
       <AutomationsView rules={items} />
     </div>

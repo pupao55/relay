@@ -413,9 +413,6 @@ export default async function CandidateDetailPage({
                     );
                   })}
                 </ul>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Signal derived from profile keywords — verify in interviews.
-                </p>
               </section>
 
               <section className="rounded-lg border border-border bg-card p-4">

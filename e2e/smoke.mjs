@@ -31,10 +31,10 @@ const font = await page.evaluate(() => getComputedStyle(document.body).fontFamil
 check("Geist font applied", /Geist/i.test(font));
 
 for (const tile of [
-  "Candidates requiring intervention",
-  "Relay executes automatically",
-  "Decisions needing human judgment",
-  "Immediate withdrawal risk",
+  "Need intervention",
+  "Auto-executed",
+  "Need your judgment",
+  "Withdrawal risk",
 ]) {
   check(`tile: ${tile}`, (await page.locator(`text=${tile}`).count()) > 0);
 }
@@ -85,7 +85,7 @@ await shot("01-command-center");
 const mayaCard = page.locator("li", { has: page.locator("a", { hasText: "Maya Chen" }) }).first();
 check(
   "Maya card explains the blocker",
-  (await mayaCard.locator("text=Blocked:").count()) > 0 &&
+  (await mayaCard.locator("text=has not reviewed the profile").count()) > 0 &&
     (await mayaCard.locator("text=James Wu").count()) > 0
 );
 await mayaCard.locator("button:has-text('Approve')").first().click();

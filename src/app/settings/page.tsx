@@ -83,9 +83,6 @@ export default async function SettingsPage() {
     <div>
       <div className="mb-5">
         <h1 className="text-xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground">
-          Integrations, policies, permissions, and the audit trail.
-        </p>
       </div>
 
       <Tabs defaultValue="integrations">

@@ -251,33 +251,30 @@ export default async function CommandCenterPage() {
 
   const tiles = [
     {
-      label: "Candidates requiring intervention",
+      label: "Need intervention",
       value: interventionCandidates.size,
-      sub: "blocked, at risk, overdue, or unowned",
+      hint: "Candidates blocked, at risk, overdue, or unowned",
       icon: AlertTriangle,
       tone: "text-red-600 dark:text-red-400",
     },
     {
-      label: "Relay executes automatically",
+      label: "Auto-executed",
       value: autoExecutable + autoExecutedToday,
-      sub:
-        autoExecutable > 0
-          ? `${autoExecutedToday} sent today · ${autoExecutable} awaiting batch approval`
-          : `internal reminders sent in the last 24h — no approval needed`,
+      hint: "Low-risk internal reminders Relay sent in the last 24h",
       icon: Zap,
       tone: "text-blue-600 dark:text-blue-400",
     },
     {
-      label: "Decisions needing human judgment",
+      label: "Need your judgment",
       value: humanJudgment,
-      sub: "candidate-facing, escalations, redirects",
+      hint: "Candidate-facing messages, escalations, and redirects awaiting approval",
       icon: Scale,
       tone: "text-foreground",
     },
     {
-      label: "Immediate withdrawal risk",
+      label: "Withdrawal risk",
       value: withdrawalRisk,
-      sub: "competing deadlines inside 3 days",
+      hint: "Competing deadlines inside 3 days",
       icon: Siren,
       tone: "text-orange-600 dark:text-orange-400",
     },
@@ -291,34 +288,26 @@ export default async function CommandCenterPage() {
   return (
     <div>
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">
-            {interventionCandidates.size > 0 ? (
-              <>
-                {interventionCandidates.size} candidate
-                {interventionCandidates.size === 1 ? " needs" : "s need"} intervention now
-              </>
-            ) : (
-              "Every candidate is owned and moving"
-            )}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {activeApps.length} active candidates — every one has a next action, an owner, and a
-            due date. These are the ones where the clock is losing.
-          </p>
-        </div>
+        <h1 className="text-xl font-semibold tracking-tight">
+          {interventionCandidates.size > 0 ? (
+            <>
+              {interventionCandidates.size} of {activeApps.length} candidates need intervention
+            </>
+          ) : (
+            "Every candidate is owned and moving"
+          )}
+        </h1>
         <RunAgentButton />
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {tiles.map((t) => (
-          <div key={t.label} className="rounded-lg border border-border bg-card p-4">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              <t.icon className={`size-3.5 ${t.tone}`} strokeWidth={1.75} />
+          <div key={t.label} title={t.hint} className="rounded-lg border border-border bg-card p-4">
+            <div className="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground">
+              <t.icon className={`size-4 ${t.tone}`} strokeWidth={1.75} />
               {t.label}
             </div>
             <div className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">{t.value}</div>
-            <div className="mt-0.5 text-xs leading-snug text-muted-foreground">{t.sub}</div>
           </div>
         ))}
       </div>
@@ -410,10 +399,6 @@ export default async function CommandCenterPage() {
                     <div className="text-xs text-muted-foreground">resolved this week</div>
                   </div>
                 </div>
-                <p className="mt-1.5 text-xs leading-snug text-muted-foreground">
-                  Days candidates have sat without activity; resolved = blocker age closed out by
-                  completed Relay actions. Full formula in Analytics.
-                </p>
               </div>
               <div className="mt-4 border-t border-border pt-3">
                 <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">

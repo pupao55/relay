@@ -188,9 +188,6 @@ export default async function AnalyticsPage() {
     <div>
       <div className="mb-5">
         <h1 className="text-xl font-semibold tracking-tight">Analytics</h1>
-        <p className="text-sm text-muted-foreground">
-          Candidate movement, not vanity metrics: where processes wait, and on whom.
-        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">

@@ -154,9 +154,6 @@ export function AutomationsView({ rules }: { rules: RuleItem[] }) {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="max-w-52 text-right text-xs leading-snug text-muted-foreground">
-                  {AUTOMATION_MODE_META[r.mode as AutomationMode]?.description}
-                </p>
               </div>
             </div>
           </li>

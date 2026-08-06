@@ -245,8 +245,7 @@ export function HmReviewSheet({
               </Button>
             </div>
             <p className="mt-2 text-xs leading-snug text-muted-foreground">
-              Acting as {data.hmName}. Your decision updates the stage, closes the review chase,
-              creates the next action, and is audit-logged.
+              Acting as {data.hmName} · audit-logged
             </p>
           </section>
         </div>

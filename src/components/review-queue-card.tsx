@@ -7,7 +7,7 @@
 
 import { useTransition } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronUp, UserRoundSearch } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { HmReviewSheet, type HmReviewData } from "@/components/hm-review-sheet";
 import { UserAvatar } from "@/components/user-avatar";
 import { rankCandidate } from "@/lib/actions";
@@ -73,7 +73,7 @@ export function ReviewQueueCard({
                 </span>
               ) : null}
               <span className="text-xs text-muted-foreground">
-                {list.length} waiting{list.length > 1 ? " · their ranking" : ""}
+                {list.length} waiting
               </span>
             </div>
             <ul className="mt-1.5 space-y-1.5">
@@ -130,11 +130,6 @@ export function ReviewQueueCard({
           </div>
         ))}
       </div>
-      <p className="mt-3 flex items-start gap-1.5 border-t border-border pt-2.5 text-xs leading-snug text-muted-foreground">
-        <UserRoundSearch className="mt-px size-3 shrink-0" />
-        Each review takes under a minute: summary, history, criteria fit, concern, timing, notes —
-        then Advance, Request info, Redirect, or Decline. Arrows set your own priority order.
-      </p>
     </div>
   );
 }

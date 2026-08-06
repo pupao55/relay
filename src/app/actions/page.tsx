@@ -72,10 +72,6 @@ export default async function ActionsPage() {
     <div>
       <div className="mb-5">
         <h1 className="text-xl font-semibold tracking-tight">Actions</h1>
-        <p className="text-sm text-muted-foreground">
-          Every proposed, running, and completed action across the pipeline. Approvals execute
-          immediately; everything is audit-logged.
-        </p>
       </div>
       <ActionsView groups={groups} users={users} />
     </div>

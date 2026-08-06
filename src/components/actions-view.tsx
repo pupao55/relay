@@ -176,8 +176,7 @@ export function ActionsView({
         {lowRiskApprovals.length > 0 && (
           <div className="mb-3 flex items-center justify-between rounded-md border border-border bg-muted/40 px-3 py-2">
             <p className="text-[13px] text-muted-foreground">
-              {lowRiskApprovals.length} low-risk internal action{lowRiskApprovals.length === 1 ? "" : "s"} eligible
-              for bulk approval. High-risk and candidate-facing actions always require individual review.
+              {lowRiskApprovals.length} low-risk action{lowRiskApprovals.length === 1 ? "" : "s"} can be approved in one batch
             </p>
             <div className="flex items-center gap-2">
               <Button
