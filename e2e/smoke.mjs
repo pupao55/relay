@@ -25,7 +25,7 @@ const shot = async (name) => {
 // ---------------------------------------------------------------------------
 await page.goto(BASE + "/", { waitUntil: "networkidle" });
 const headline = await page.locator("h1").first().innerText();
-check("headline leads with intervention count", /need(s)? intervention now/.test(headline), headline);
+check("headline leads with intervention count", /\d+ of \d+ candidates need intervention/.test(headline), headline);
 
 const font = await page.evaluate(() => getComputedStyle(document.body).fontFamily);
 check("Geist font applied", /Geist/i.test(font));
