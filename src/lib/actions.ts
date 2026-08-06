@@ -1214,6 +1214,95 @@ export async function createAutomationRule(input: {
 }
 
 // ---------------------------------------------------------------------------
+// Agency portal
+// ---------------------------------------------------------------------------
+
+/**
+ * External-recruiter submission. The core invariant applies from second one:
+ * the submission enters Recruiter Review with an owner, a due date, and the
+ * 24h review SLA already running.
+ */
+export async function agencySubmitCandidate(input: {
+  sourceId: string;
+  roleId: string;
+  name: string;
+  email: string;
+  company: string;
+  title: string;
+  note?: string;
+}): Promise<string> {
+  const now = new Date();
+  const [source, role, org] = await Promise.all([
+    db.externalSource.findUniqueOrThrow({ where: { id: input.sourceId } }),
+    db.role.findUniqueOrThrow({ where: { id: input.roleId }, include: { recruiter: true } }),
+    db.organization.findFirstOrThrow(),
+  ]);
+  const firstStage = await db.pipelineStage.findFirstOrThrow({
+    where: { name: "Recruiter Review" },
+  });
+
+  const candidate = await db.candidate.create({
+    data: {
+      organizationId: org.id,
+      name: input.name.trim(),
+      email: input.email.trim(),
+      location: "—",
+      currentCompany: input.company.trim() || "—",
+      currentTitle: input.title.trim() || "—",
+      summary: input.note?.trim() || `Submitted by ${source.name} for ${role.title}.`,
+      strengths: JSON.stringify([]),
+      concerns: JSON.stringify([]),
+      priorCompanies: JSON.stringify(
+        input.company.trim() ? [{ company: input.company.trim(), title: input.title.trim() || "—", years: "current" }] : []
+      ),
+    },
+  });
+  const app = await db.application.create({
+    data: {
+      candidateId: candidate.id,
+      roleId: role.id,
+      stageId: firstStage.id,
+      sourceId: source.id,
+      status: "ACTIVE",
+      momentum: "MOVING",
+      appliedAt: now,
+      stageEnteredAt: now,
+      lastActivityAt: now,
+      lastCandidateUpdateAt: now,
+    },
+  });
+  await db.action.create({
+    data: {
+      applicationId: app.id,
+      type: "TASK",
+      title: `Review ${candidate.name}'s agency submission`,
+      proposedContent: `${source.name} submitted ${candidate.name} for ${role.title}.${input.note?.trim() ? ` Their note: ${input.note.trim()}` : ""} Review against the role criteria within the 24h SLA.`,
+      rationale: `Agency submissions carry a fee and an expectant partner — the 24h review SLA starts now.`,
+      supportingFacts: JSON.stringify([`Submitted via ${source.name}`, `Recruiter review SLA: 24h`]),
+      escalationNote: "Unreviewed after 24h: Relay reminds the recruiter; recruiting lead at 48h.",
+      ownerId: role.recruiterId,
+      status: "APPROVED",
+      risk: "LOW",
+      approvalMode: "APPROVAL_REQUIRED",
+      createdBy: "AGENT",
+      dueAt: new Date(now.getTime() + 24 * 3600_000),
+      createdAt: now,
+    },
+  });
+  await audit({
+    applicationId: app.id,
+    actorType: "SYSTEM",
+    actorName: `${source.name} (Agency Portal)`,
+    eventType: "SUBMISSION",
+    title: `${source.name} submitted ${candidate.name} for ${role.title}`,
+    detail: input.note?.trim() || undefined,
+    newState: "Recruiter Review",
+  });
+  refresh();
+  return `${candidate.name} submitted — in review with ${role.recruiter.name}, response due within 24 hours.`;
+}
+
+// ---------------------------------------------------------------------------
 // ATS sync simulation
 // ---------------------------------------------------------------------------
 

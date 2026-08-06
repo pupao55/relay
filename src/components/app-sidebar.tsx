@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
   Activity,
+  Handshake,
   BarChart3,
   Briefcase,
   ChevronsUpDown,
@@ -37,6 +38,7 @@ const NAV = [
   { href: "/automations", label: "Automations", icon: Workflow },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/agency", label: "Agency Portal", icon: Handshake },
 ];
 
 // Hiring managers decide; recruiters operate. The nav reflects the job.

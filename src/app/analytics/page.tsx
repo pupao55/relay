@@ -38,13 +38,18 @@ function Section({
 export default async function AnalyticsPage() {
   const now = new Date();
 
-  const [apps, actions, stages, feedback, interviews] = await Promise.all([
+  const [apps, actions, stages, feedback, riskLogs, interviews] = await Promise.all([
     db.application.findMany({
       include: { stage: true, role: { include: { hiringManager: true } }, actions: true },
     }),
     db.action.findMany({ include: { owner: true } }),
     db.pipelineStage.findMany({ orderBy: { order: "asc" } }),
     db.feedback.findMany({ include: { interview: true, interviewer: true } }),
+    db.auditLog.findMany({
+      where: { eventType: { in: ["RISK_CHANGE", "STAGE_CHANGE"] } },
+      select: { applicationId: true, eventType: true, createdAt: true, newState: true },
+      orderBy: { createdAt: "asc" },
+    }),
     db.interview.findMany(),
   ]);
 
@@ -189,7 +194,42 @@ export default async function AnalyticsPage() {
         .reduce((s, a) => s + (a.completedAt!.getTime() - a.createdAt.getTime()) / (24 * HOUR), 0) * 10
     ) / 10;
 
+  // The fund metric: winnable candidates lost while the process was slow, and
+  // the saves — candidates who hit competing-deadline risk yet still advanced.
+  const lostToLatency = apps.filter(
+    (a) =>
+      a.status === "WITHDRAWN" && /slow|counter.?offer|process/i.test(a.resolutionReason ?? "")
+  ).length;
+  const riskElevatedApps = new Map<string, Date>();
+  for (const l of riskLogs) {
+    if (
+      l.eventType === "RISK_CHANGE" &&
+      (l.newState === "HIGH" || l.newState === "CRITICAL") &&
+      l.applicationId &&
+      !riskElevatedApps.has(l.applicationId)
+    ) {
+      riskElevatedApps.set(l.applicationId, l.createdAt);
+    }
+  }
+  const atRiskSaves = [...riskElevatedApps.entries()].filter(([appId, elevatedAt]) =>
+    riskLogs.some(
+      (l) =>
+        l.eventType === "STAGE_CHANGE" && l.applicationId === appId && l.createdAt > elevatedAt
+    )
+  ).length;
+
   const stats = [
+    {
+      label: "Lost to process latency",
+      value: `${lostToLatency}`,
+      sub: "withdrew citing a slow process or counteroffer",
+      alert: lostToLatency > 0,
+    },
+    {
+      label: "At-risk saves",
+      value: `${atRiskSaves}`,
+      sub: "hit high risk, then advanced anyway",
+    },
     {
       label: "Applications with a valid next action",
       value: `${pctNextAction}%`,

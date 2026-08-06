@@ -331,6 +331,36 @@ check("analytics: idle days outstanding", /Idle candidate-days outstanding/i.tes
 check("analytics: idle days resolved", /Idle days resolved by Relay/i.test(analytics));
 check("analytics: formula documented", /formula/i.test(analytics));
 check("analytics: named bottleneck callout", /Where hiring time goes/i.test(analytics));
+check("analytics: latency-loss is the lead metric", /Lost to process latency/i.test(analytics));
+
+// ---------------------------------------------------------------------------
+// 5c. External recruiter portal: sanitized status + SLA'd submissions
+// ---------------------------------------------------------------------------
+await page.goto(BASE + "/agency", { waitUntil: "networkidle" });
+check(
+  "portal has no internal chrome",
+  (await page.locator("nav[aria-label='Primary']").count()) === 0
+);
+const portal = await page.locator("body").innerText();
+check(
+  "agency sees only its own submissions",
+  /Wei Zhang/.test(portal) && /Lucas Weber/.test(portal) && !/Maya Chen/.test(portal)
+);
+check(
+  "statuses are sanitized — no internal stages or risk",
+  !/Hiring Manager Review/i.test(portal) && !/Critical/i.test(portal) && /Under review|Decision pending/.test(portal)
+);
+await page.fill("#ag-name", "Test Candidate");
+await page.fill("#ag-email", "test@example.com");
+await page.fill("#ag-company", "Jane Street");
+await page.fill("#ag-title", "Quant Developer");
+await page.locator("button:has-text('Submit candidate')").click();
+await page.waitForSelector("text=Submission received", { timeout: 8000 });
+await page.waitForTimeout(1500);
+check(
+  "submission enters the SLA'd pipeline immediately",
+  (await page.locator("text=Test Candidate").count()) > 0
+);
 
 // ---------------------------------------------------------------------------
 // 6. Personas: the sidebar switcher changes whose Relay this is

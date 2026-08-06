@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
-import { AppSidebar } from "@/components/app-sidebar";
+import { AppShell } from "@/components/app-shell";
 import { ReceiptHost } from "@/components/receipt-host";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/current-user";
@@ -38,20 +38,17 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-background font-sans text-foreground">
-        <div className="flex min-h-screen">
-          <AppSidebar
-            currentUser={{
-              id: currentUser.id,
-              name: currentUser.name,
-              title: currentUser.title,
-              userRole: currentUser.userRole,
-            }}
-            personas={personas}
-          />
-          <main className="min-w-0 flex-1 md:pl-56">
-            <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-8">{children}</div>
-          </main>
-        </div>
+        <AppShell
+          currentUser={{
+            id: currentUser.id,
+            name: currentUser.name,
+            title: currentUser.title,
+            userRole: currentUser.userRole,
+          }}
+          personas={personas}
+        >
+          {children}
+        </AppShell>
         <Toaster position="bottom-right" />
         <ReceiptHost />
       </body>
