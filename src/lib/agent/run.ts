@@ -4,6 +4,7 @@
 
 import { db } from "../db";
 import { recommendForApplication, type AppSnapshot, type RuleContext } from "./engine";
+import { draftProposedContent, draftingModel, modelDraftingEnabled } from "./drafting";
 
 export const APP_INCLUDE = {
   candidate: true,
@@ -58,6 +59,7 @@ export async function runAgent(trigger: "SCHEDULED" | "MANUAL", now = new Date()
 
   let proposals = 0;
   let executed = 0;
+  let drafted = 0;
 
   for (const app of apps) {
     const { derived, recommendations } = recommendForApplication(app, ctx);
@@ -98,12 +100,33 @@ export async function runAgent(trigger: "SCHEDULED" | "MANUAL", now = new Date()
 
     for (const rec of recommendations) {
       const autoExecute = !rec.requiresApproval && ruleModes[rec.ruleKey] === "AUTO_INTERNAL";
+      // Optional model drafting (ANTHROPIC_API_KEY): the engine's template is
+      // the baseline and the fallback; facts, risk, and owners stay deterministic.
+      const draft = await draftProposedContent(rec, {
+        candidateName: app.candidate.name,
+        roleTitle: app.role.title,
+        stageName: app.stage.name,
+        blocker: app.blockerDescription,
+        competing:
+          app.candidate.competingProcess && app.candidate.competingDeadline
+            ? `${app.candidate.competingProcess} on ${app.candidate.competingDeadline.toDateString()}`
+            : null,
+        recipientName: rec.recipientId
+          ? (rec.recipientId === app.role.hiringManagerId
+              ? app.role.hiringManager.name
+              : rec.recipientId === app.role.recruiterId
+                ? app.role.recruiter.name
+                : null)
+          : null,
+        recruiterName: app.role.recruiter.name,
+      });
+      if (draft.drafted) drafted++;
       const action = await db.action.create({
         data: {
           applicationId: app.id,
           type: rec.type,
           title: rec.title,
-          proposedContent: rec.proposedContent,
+          proposedContent: draft.content,
           rationale: rec.rationale,
           supportingFacts: JSON.stringify(rec.supportingFacts),
           escalationNote: rec.escalationNote,
@@ -130,7 +153,7 @@ export async function runAgent(trigger: "SCHEDULED" | "MANUAL", now = new Date()
           actorName: "Relay Agent",
           eventType: "AGENT_PROPOSAL",
           title: rec.title,
-          detail: rec.proposedContent,
+          detail: draft.content,
           newState: autoExecute ? "WAITING" : "PROPOSED",
           rationale: rec.rationale,
           createdAt: now,
@@ -146,7 +169,7 @@ export async function runAgent(trigger: "SCHEDULED" | "MANUAL", now = new Date()
             direction: "INTERNAL",
             channel: "SLACK",
             subject: rec.title,
-            body: rec.proposedContent,
+            body: draft.content,
             sentAt: now,
             candidateFacing: false,
           },
@@ -174,7 +197,9 @@ export async function runAgent(trigger: "SCHEDULED" | "MANUAL", now = new Date()
     where: { status: "ACTIVE", momentum: { in: ["BLOCKED", "AT_RISK"] } },
   });
 
-  const summary = `Reviewed ${apps.length} applications · ${proposals} proposals · ${executed} auto-executed internal actions · ${blocked} applications blocked or at risk`;
+  const summary =
+    `Reviewed ${apps.length} applications · ${proposals} proposals · ${executed} auto-executed internal actions · ${blocked} applications blocked or at risk` +
+    (modelDraftingEnabled() && drafted > 0 ? ` · ${drafted} drafts written by ${draftingModel()}` : "");
 
   await db.agentRun.update({
     where: { id: run.id },

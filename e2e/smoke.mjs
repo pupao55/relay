@@ -207,6 +207,36 @@ const sofiaPage = await page.locator("main").innerText();
 check("new pipeline has a next action from minute one", /redirected application/i.test(sofiaPage));
 
 // ---------------------------------------------------------------------------
+// 4b. Scheduling executes structurally on approve
+// ---------------------------------------------------------------------------
+await page.goto(BASE + "/", { waitUntil: "networkidle" });
+const tomasCard = page.locator("li", { has: page.locator("a", { hasText: "Tomás Silva" }) }).first();
+if (await tomasCard.count()) {
+  await tomasCard.locator("button:has-text('Approve')").first().click();
+  await page.waitForSelector("text=Action performed", { timeout: 8000 });
+  const schedReceipt = await page.locator("[role='dialog']").innerText();
+  check("scheduling receipt: interview booked", /Booked the phone screen/i.test(schedReceipt));
+  check("scheduling receipt: candidate confirmation sent", /confirmation/i.test(schedReceipt));
+  check("scheduling receipt: scorecard deadline set", /Scorecards?/i.test(schedReceipt));
+  await page.locator("[role='dialog'] button:has-text('Done')").click();
+  await page.waitForTimeout(1500);
+} else {
+  check("scheduling receipt: interview booked", false, "Tomás Silva card not found");
+}
+
+// ---------------------------------------------------------------------------
+// 4c. Simulated ATS webhook: scorecard lands, blocker clears
+// ---------------------------------------------------------------------------
+await page.goto(BASE + "/settings", { waitUntil: "networkidle" });
+await page.locator("button:has-text('Simulate sync event')").click();
+await page.waitForSelector("text=Webhook received", { timeout: 8000 });
+check(
+  "ATS sync event submits an overdue scorecard",
+  (await page.locator("text=submitted their scorecard").count()) > 0
+);
+await page.waitForTimeout(1500);
+
+// ---------------------------------------------------------------------------
 // 5. Remaining loop mechanics (dismiss, bulk approve, automations, audit)
 // ---------------------------------------------------------------------------
 await page.goto(BASE + "/", { waitUntil: "networkidle" });
@@ -252,6 +282,22 @@ const analytics = await page.locator("main").innerText();
 check("analytics: idle days outstanding", /Idle candidate-days outstanding/i.test(analytics));
 check("analytics: idle days resolved", /Idle days resolved by Relay/i.test(analytics));
 check("analytics: formula documented", /formula/i.test(analytics));
+
+// ---------------------------------------------------------------------------
+// 6. Personas: the sidebar switcher changes whose Relay this is
+// ---------------------------------------------------------------------------
+await page.goto(BASE + "/", { waitUntil: "networkidle" });
+await page.locator("button[aria-label='Switch persona']").first().click();
+await page.locator("[role='menuitem']:has-text('James Wu')").click();
+await page.waitForTimeout(2500);
+check(
+  "persona switch updates identity",
+  (await page.locator("aside").first().innerText()).includes("James Wu")
+);
+check("HM persona sees their own queue labeled", (await page.locator("text=your queue").count()) >= 1);
+await page.locator("button[aria-label='Switch persona']").first().click();
+await page.locator("[role='menuitem']:has-text('Sarah Kim')").click();
+await page.waitForTimeout(1500);
 
 await browser.close();
 console.log(results.join("\n"));

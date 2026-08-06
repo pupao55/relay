@@ -50,8 +50,23 @@ momentum states are live immediately. Re-run `npm run db:seed` any time to reset
 - **Settings** (`/settings`) — mock integration states, stage mapping, SLA policies,
   roles & permissions, agent permissions, and the full audit log.
 
-The signed-in user is **Sarah Kim (Recruiting Lead)** — the "My actions" filter and all
-human-initiated audit entries use her identity.
+The default persona is **Sarah Kim (Recruiting Lead)**. The switcher at the bottom of the
+sidebar changes who you are — pick a hiring manager to see their review queue surface
+first; "My actions" and audit attribution follow the active persona.
+
+## Optional: model-drafted messages
+
+Without credentials, all agent drafts come from deterministic templates. To have the
+Anthropic API write them instead:
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-... npm run dev
+# optional: RELAY_DRAFTING_MODEL=claude-opus-4-8 (the default)
+```
+
+Only the message body is model-drafted — triggers, risk, owners, due dates, and
+supporting facts stay deterministic, every draft passes a validation gate with template
+fallback, and the approval pipeline is unchanged. See ARCHITECTURE.md.
 
 ## Deploying (Vercel + Postgres)
 

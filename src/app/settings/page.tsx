@@ -12,6 +12,7 @@ import {
 import { db } from "@/lib/db";
 import { durationSince, shortDateTime } from "@/lib/format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SimulateSyncButton } from "@/components/simulate-sync-button";
 import { UserAvatar } from "@/components/user-avatar";
 
 export const dynamic = "force-dynamic";
@@ -136,6 +137,7 @@ export default async function SettingsPage() {
                         <CircleAlert className="size-3" /> Reauthorize required
                       </span>
                     )}
+                    {i.kind === "ATS" && i.status === "CONNECTED" && <SimulateSyncButton />}
                   </div>
                 </div>
               );

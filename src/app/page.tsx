@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { durationSince, dueLabel, shortDateTime } from "@/lib/format";
-import { CURRENT_USER_EMAIL } from "@/lib/current-user";
+import { getCurrentUser } from "@/lib/current-user";
 import { AttentionList, type AttentionItem } from "@/components/attention-list";
 import type { ExecutionState } from "@/components/status-badges";
 import type { HmReviewData } from "@/components/hm-review-sheet";
@@ -37,7 +37,7 @@ export default async function CommandCenterPage() {
     overdueFeedbackCount,
     lastRun,
   ] = await Promise.all([
-    db.user.findUniqueOrThrow({ where: { email: CURRENT_USER_EMAIL } }),
+    getCurrentUser(),
     db.user.findMany({
       where: { userRole: { in: ["RECRUITER", "HIRING_MANAGER"] } },
       select: { id: true, name: true },
@@ -341,7 +341,7 @@ export default async function CommandCenterPage() {
                 {reviewQueue.length}
               </span>
             </h2>
-            <ReviewQueueCard items={reviewQueue} />
+            <ReviewQueueCard items={reviewQueue} currentUserName={currentUser.name} />
           </div>
           <div>
             <h2 id="brief-heading" className="mb-3 text-sm font-semibold">

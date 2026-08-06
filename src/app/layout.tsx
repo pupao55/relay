@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ReceiptHost } from "@/components/receipt-host";
+import { db } from "@/lib/db";
+import { getCurrentUser } from "@/lib/current-user";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -21,7 +23,15 @@ export const metadata: Metadata = {
     "The execution layer above your ATS: every candidate has a next action, an owner, and a due date.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const [currentUser, personas] = await Promise.all([
+    getCurrentUser(),
+    db.user.findMany({
+      where: { userRole: { in: ["RECRUITER", "HIRING_MANAGER"] } },
+      select: { id: true, name: true, title: true, userRole: true },
+      orderBy: [{ userRole: "asc" }, { name: "asc" }],
+    }),
+  ]);
   return (
     <html
       lang="en"
@@ -29,7 +39,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full bg-background font-sans text-foreground">
         <div className="flex min-h-screen">
-          <AppSidebar />
+          <AppSidebar
+            currentUser={{ id: currentUser.id, name: currentUser.name, title: currentUser.title }}
+            personas={personas}
+          />
           <main className="min-w-0 flex-1 md:pl-56">
             <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-8">{children}</div>
           </main>

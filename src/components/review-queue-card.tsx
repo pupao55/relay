@@ -23,7 +23,13 @@ export interface ReviewQueueItem {
   data: HmReviewData;
 }
 
-export function ReviewQueueCard({ items }: { items: ReviewQueueItem[] }) {
+export function ReviewQueueCard({
+  items,
+  currentUserName,
+}: {
+  items: ReviewQueueItem[];
+  currentUserName?: string;
+}) {
   const [pending, startTransition] = useTransition();
 
   if (items.length === 0) {
@@ -46,14 +52,26 @@ export function ReviewQueueCard({ items }: { items: ReviewQueueItem[] }) {
       await rankCandidate(applicationId, direction);
     });
 
+  // The signed-in persona's own queue comes first.
+  const groups = [...byHm.entries()].sort(([a], [b]) => {
+    if (a === currentUserName) return -1;
+    if (b === currentUserName) return 1;
+    return a.localeCompare(b);
+  });
+
   return (
     <div className="rounded-lg border border-border bg-card p-4">
       <div className="space-y-3">
-        {[...byHm.entries()].map(([hm, list]) => (
+        {groups.map(([hm, list]) => (
           <div key={hm}>
             <div className="flex items-center gap-1.5">
               <UserAvatar name={hm} size="sm" />
               <span className="text-xs font-medium">{hm}</span>
+              {hm === currentUserName ? (
+                <span className="rounded border border-blue-200 bg-blue-50 px-1 py-px text-[10px] font-medium text-blue-700 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-400">
+                  your queue
+                </span>
+              ) : null}
               <span className="text-[11px] text-muted-foreground">
                 {list.length} waiting{list.length > 1 ? " · their ranking" : ""}
               </span>

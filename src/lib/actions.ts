@@ -5,13 +5,22 @@
 // new state, rationale, human vs agent).
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { runAgent } from "@/lib/agent/run";
-import { CURRENT_USER_EMAIL } from "@/lib/current-user";
+import { getCurrentUser, PERSONA_COOKIE } from "@/lib/current-user";
 import { MOMENTUM_META, type ExecutionReceipt, type Momentum, type ReviewReceipt } from "@/lib/types";
 
 async function currentUser() {
-  return db.user.findUniqueOrThrow({ where: { email: CURRENT_USER_EMAIL } });
+  return getCurrentUser();
+}
+
+/** Persona switcher — the prototype's stand-in for auth. */
+export async function switchUser(userId: string) {
+  const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
+  const store = await cookies();
+  store.set(PERSONA_COOKIE, user.id, { path: "/", maxAge: 60 * 60 * 24 * 30 });
+  refresh();
 }
 
 async function audit(data: {
@@ -58,6 +67,14 @@ export async function approveAction(actionId: string): Promise<ExecutionReceipt 
   // matched role's pipeline rather than sending a message.
   if (action.type === "REDIRECTION") {
     return executeRedirect(action.id, user.name);
+  }
+
+  // Scheduling executes structurally: book the open interview slot and send
+  // the candidate the confirmation.
+  if (action.type === "SCHEDULING") {
+    const scheduled = await executeScheduling(action.id, user.name);
+    if (scheduled) return scheduled;
+    // No unscheduled interview to book — fall through to the generic path.
   }
 
   const messageTypes = ["REMINDER", "ESCALATION", "FEEDBACK_REQUEST", "CANDIDATE_UPDATE", "OFFER_APPROVAL"];
@@ -381,6 +398,127 @@ async function executeRedirect(actionId: string, actorName: string): Promise<Exe
     resultingState: `Active on ${targetRole.title} · Moving · owned by ${targetRole.recruiter.name}`,
     nextAction: `${reviewTask.title} — ${targetRole.recruiter.name}, due in 24h; warm note to ${cand.name} drafted for approval`,
     escalation: reviewTask.escalationNote,
+  };
+}
+
+/** Next business day at 10:00 local — the prototype's stand-in for calendar availability. */
+function nextBusinessDaySlot(from = new Date()): Date {
+  const d = new Date(from);
+  d.setDate(d.getDate() + 1);
+  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+  d.setHours(10, 0, 0, 0);
+  return d;
+}
+
+/**
+ * Executes an approved scheduling action: books the application's unscheduled
+ * interview into the next available slot, sets scorecard deadlines, sends the
+ * candidate the confirmation, and audits everything. Returns null when there
+ * is no unscheduled interview to book.
+ */
+async function executeScheduling(
+  actionId: string,
+  actorName: string
+): Promise<ExecutionReceipt | null> {
+  const now = new Date();
+  const action = await db.action.findUniqueOrThrow({
+    where: { id: actionId },
+    include: {
+      application: {
+        include: {
+          candidate: true,
+          role: { include: { recruiter: true } },
+          interviews: { include: { panelists: { include: { user: true } } } },
+        },
+      },
+    },
+  });
+  const app = action.application;
+  const interview = app.interviews.find((iv) => iv.status === "NEEDS_SCHEDULING");
+  if (!interview) return null;
+
+  const slot = nextBusinessDaySlot(now);
+  const slotLabel = slot.toLocaleString("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const cand = app.candidate;
+  const recruiter = app.role.recruiter;
+  const panel = interview.panelists.map((p) => p.user.name);
+
+  await db.interview.update({
+    where: { id: interview.id },
+    data: { scheduledAt: slot, status: "SCHEDULED" },
+  });
+  await db.feedback.updateMany({
+    where: { interviewId: interview.id, status: "PENDING" },
+    data: { dueAt: new Date(slot.getTime() + (interview.durationMins + 12 * 60) * 60_000) },
+  });
+
+  await db.communication.create({
+    data: {
+      applicationId: app.id,
+      direction: "OUTBOUND",
+      channel: "EMAIL",
+      subject: `${interview.name} confirmed — ${slotLabel}`,
+      body: `Hi ${cand.name.split(" ")[0]},\n\nYour ${interview.name.toLowerCase()} for the ${app.role.title} role is confirmed for ${slotLabel} (${interview.durationMins} min)${panel.length ? ` with ${panel.join(" and ")}` : ""}. A calendar invite follows.\n\nBest,\n${recruiter.name}`,
+      sentById: recruiter.id,
+      sentAt: now,
+      candidateFacing: true,
+    },
+  });
+
+  await db.action.update({
+    where: { id: actionId },
+    data: { status: "COMPLETED", completedAt: now },
+  });
+  await db.application.update({
+    where: { id: app.id },
+    data: {
+      lastActivityAt: now,
+      lastCandidateUpdateAt: now,
+      momentum: "MOVING",
+      risk: "LOW",
+      blockerType: "NONE",
+      blockerDescription: null,
+    },
+  });
+
+  await audit({
+    applicationId: app.id,
+    actionId,
+    actorType: "HUMAN",
+    actorName,
+    eventType: "ACTION_APPROVED",
+    title: `Approved: ${action.title}`,
+    previousState: action.status,
+    newState: "COMPLETED",
+    rationale: action.rationale,
+  });
+  await audit({
+    applicationId: app.id,
+    actionId,
+    actorType: "AGENT",
+    actorName: "Relay Agent",
+    eventType: "AGENT_EXECUTION",
+    title: `Scheduled ${cand.name}'s ${interview.name.toLowerCase()} for ${slotLabel}`,
+    detail: `Confirmation emailed to ${cand.name}; scorecards due 12h after the interview.`,
+    newState: "SCHEDULED",
+    rationale: "Executed after human approval.",
+  });
+
+  refresh();
+  return {
+    performed: `Booked the ${interview.name.toLowerCase()} for ${slotLabel} and emailed ${cand.name} the confirmation`,
+    recipient: cand.name,
+    channel: "Email + calendar",
+    candidateName: cand.name,
+    resultingState: `${interview.name} scheduled · candidate Moving · scheduling blocker cleared`,
+    nextAction: `Scorecards from ${panel.join(", ") || "the panel"} due 12h after the interview — Relay chases if late`,
+    escalation: action.escalationNote,
   };
 }
 
@@ -960,6 +1098,87 @@ export async function createAutomationRule(input: {
     newState: input.mode,
   });
   refresh();
+}
+
+// ---------------------------------------------------------------------------
+// ATS sync simulation
+// ---------------------------------------------------------------------------
+
+/**
+ * Simulates one inbound Greenhouse webhook event, demonstrating how external
+ * state changes flow into Relay: an interviewer submits an overdue scorecard,
+ * or an interviewer confirms an unscheduled interview. Deterministic — applies
+ * the first applicable event. Production shape: ARCHITECTURE.md → ATS model.
+ */
+export async function simulateAtsSync(): Promise<string> {
+  const now = new Date();
+
+  // Event 1: an overdue scorecard lands.
+  const overdue = await db.feedback.findFirst({
+    where: {
+      status: "PENDING",
+      dueAt: { lt: now },
+      interview: { status: "COMPLETED", application: { status: "ACTIVE" } },
+    },
+    include: {
+      interviewer: true,
+      interview: { include: { application: { include: { candidate: true } } } },
+    },
+    orderBy: { dueAt: "asc" },
+  });
+  if (overdue) {
+    const cand = overdue.interview.application.candidate;
+    await db.feedback.update({
+      where: { id: overdue.id },
+      data: {
+        status: "SUBMITTED",
+        rating: "YES",
+        summary: "Solid round — thoughtful answers with concrete depth. Supportive of moving forward.",
+        submittedAt: now,
+      },
+    });
+    await db.application.update({
+      where: { id: overdue.interview.applicationId },
+      data: { lastActivityAt: now },
+    });
+    await audit({
+      applicationId: overdue.interview.applicationId,
+      actorType: "SYSTEM",
+      actorName: "Greenhouse Sync",
+      eventType: "FEEDBACK_SUBMITTED",
+      title: `${overdue.interviewer.name} submitted their scorecard for ${cand.name}`,
+      detail: "Received via ATS webhook; the feedback chase resolves on the next agent pass.",
+      previousState: "PENDING",
+      newState: "SUBMITTED",
+    });
+    // Resolve the corresponding chase if it was the last outstanding scorecard.
+    const stillPending = await db.feedback.count({
+      where: { interviewId: overdue.interviewId, status: "PENDING" },
+    });
+    if (stillPending === 0) {
+      await db.action.updateMany({
+        where: {
+          applicationId: overdue.interview.applicationId,
+          type: "FEEDBACK_REQUEST",
+          status: { in: ["PROPOSED", "WAITING", "APPROVED", "IN_PROGRESS"] },
+        },
+        data: { status: "COMPLETED", completedAt: now },
+      });
+    }
+    refresh();
+    return `Greenhouse event: ${overdue.interviewer.name} submitted their scorecard for ${cand.name}.${stillPending === 0 ? " All scorecards in — the debrief is unblocked." : ` ${stillPending} scorecard${stillPending === 1 ? "" : "s"} still outstanding.`}`;
+  }
+
+  // Event 2: nothing overdue — report a clean sync.
+  await audit({
+    actorType: "SYSTEM",
+    actorName: "Greenhouse Sync",
+    eventType: "SYNC",
+    title: "Sync completed — no state changes",
+    detail: "All mapped candidates, stages, and scorecards are already in agreement.",
+  });
+  refresh();
+  return "Sync completed — Greenhouse and Relay already agree on every mapped record.";
 }
 
 // ---------------------------------------------------------------------------

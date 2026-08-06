@@ -92,17 +92,20 @@ drafted message content ("Maya has a Citadel final on Friday…").
 Every recommendation carries: action type, target, owner, due date, risk, rationale, and
 supporting facts (the exact data points it was derived from), rendered verbatim in the UI.
 
-### Swapping in a real model
+### Model-drafted content (implemented)
 
-`recommendForApplication` is the seam. To connect the Anthropic API:
+`src/lib/agent/drafting.ts` implements the seam described above. The deterministic
+engine remains the trigger detector — which SLAs fired, which facts matter, risk,
+owners, and due dates are never model-generated. When `ANTHROPIC_API_KEY` is set, the
+message *body* of each recommendation is drafted by the Anthropic API
+(`claude-opus-4-8` by default; override with `RELAY_DRAFTING_MODEL`), using the
+engine's template as the baseline and the supporting facts as the only allowed inputs.
 
-1. Keep the deterministic engine as the *trigger detector* (which SLAs fired, which facts
-   matter). Determinism here is a feature — SLA detection should never hallucinate.
-2. Replace template-string drafting with a model call: pass the snapshot + fired rule +
-   supporting facts; the model returns the `Recommendation` fields (title, content,
-   rationale). Validate against the same TypeScript schema before persisting.
-3. The approval pipeline, risk ceiling, audit trail, and UI don't change at all — a
-   model-generated proposal is still just a `PROPOSED` action.
+Safety properties: explicit opt-in (no key → deterministic templates, so the prototype
+runs with zero credentials); a validation gate (length bounds, must reference the
+candidate) with fallback to the template on any error, refusal, or invalid output; and
+the approval pipeline, risk ceiling, and audit trail are unchanged — a model-drafted
+proposal is still just a `PROPOSED` action a human approves.
 
 ## Data flow for one interaction
 
@@ -137,3 +140,11 @@ production shape:
 
 The agent never talks to integrations directly: it proposes actions; the execution layer
 (server actions today, a worker in production) performs I/O after the approval gate.
+
+Two execution paths are already structural rather than message-based: approving a
+**scheduling** action books the unscheduled interview (next-business-day slot standing in
+for calendar availability), sets scorecard deadlines, and emails the candidate the
+confirmation; approving a **redirection** creates the application in the target pipeline.
+The inbound direction is demonstrated by **Settings → ATS → "Simulate sync event"**, which
+applies one deterministic Greenhouse-style webhook (an overdue scorecard landing),
+resolves the corresponding chase, and audits the change as `Greenhouse Sync`.

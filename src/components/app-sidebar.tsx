@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import {
   Activity,
   BarChart3,
   Briefcase,
+  ChevronsUpDown,
   ListChecks,
   Menu,
   Settings,
@@ -15,8 +16,18 @@ import {
   X,
   Zap,
 } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { CURRENT_USER_NAME } from "@/lib/current-user";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { UserAvatar } from "@/components/user-avatar";
+import { switchUser } from "@/lib/actions";
 
 const NAV = [
   { href: "/", label: "Command Center", icon: Activity },
@@ -28,15 +39,20 @@ const NAV = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
+export interface Persona {
+  id: string;
+  name: string;
+  title: string;
+  userRole: string;
+}
+
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   return (
     <nav className="flex flex-1 flex-col gap-0.5 px-2" aria-label="Primary">
       {NAV.map((item) => {
         const active =
-          item.href === "/"
-            ? pathname === "/"
-            : pathname.startsWith(item.href);
+          item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
         const Icon = item.icon;
         return (
           <Link
@@ -60,7 +76,78 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+function PersonaSwitcher({
+  currentUser,
+  personas,
+}: {
+  currentUser: { id: string; name: string; title: string };
+  personas: Persona[];
+}) {
+  const [pending, startTransition] = useTransition();
+  const recruiters = personas.filter((p) => p.userRole === "RECRUITER");
+  const hms = personas.filter((p) => p.userRole === "HIRING_MANAGER");
+
+  const pick = (p: Persona) =>
+    startTransition(async () => {
+      await switchUser(p.id);
+      toast.success(`Now viewing as ${p.name}`, { description: p.title });
+    });
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          disabled={pending}
+          aria-label="Switch persona"
+          className="flex w-full items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left hover:bg-accent/60"
+        >
+          <UserAvatar name={currentUser.name} />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[13px] font-medium">{currentUser.name}</span>
+            <span className="block truncate text-[11px] text-muted-foreground">
+              {currentUser.title}
+            </span>
+          </span>
+          <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-56">
+        <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          Recruiters
+        </DropdownMenuLabel>
+        {recruiters.map((p) => (
+          <DropdownMenuItem key={p.id} onClick={() => pick(p)} className="gap-2 text-xs">
+            <UserAvatar name={p.name} size="sm" />
+            <span className="flex-1">{p.name}</span>
+            {p.id === currentUser.id && <span className="text-[10px] text-muted-foreground">current</span>}
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          Hiring managers
+        </DropdownMenuLabel>
+        {hms.map((p) => (
+          <DropdownMenuItem key={p.id} onClick={() => pick(p)} className="gap-2 text-xs">
+            <UserAvatar name={p.name} size="sm" />
+            <span className="flex-1">{p.name}</span>
+            {p.id === currentUser.id && <span className="text-[10px] text-muted-foreground">current</span>}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function SidebarContent({
+  currentUser,
+  personas,
+  onNavigate,
+}: {
+  currentUser: { id: string; name: string; title: string };
+  personas: Persona[];
+  onNavigate?: () => void;
+}) {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-2 px-4 py-4">
@@ -73,28 +160,26 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         </span>
       </div>
       <NavLinks onNavigate={onNavigate} />
-      <div className="border-t border-border px-4 py-3">
-        <div className="flex items-center gap-2.5">
-          <div className="flex size-7 items-center justify-center rounded-full bg-blue-100 text-[11px] font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-            SK
-          </div>
-          <div className="min-w-0">
-            <div className="truncate text-[13px] font-medium">{CURRENT_USER_NAME}</div>
-            <div className="truncate text-[11px] text-muted-foreground">Recruiting Lead</div>
-          </div>
-        </div>
+      <div className="border-t border-border px-2.5 py-2.5">
+        <PersonaSwitcher currentUser={currentUser} personas={personas} />
       </div>
     </div>
   );
 }
 
-export function AppSidebar() {
+export function AppSidebar({
+  currentUser,
+  personas,
+}: {
+  currentUser: { id: string; name: string; title: string };
+  personas: Persona[];
+}) {
   const [open, setOpen] = useState(false);
   return (
     <>
       {/* Desktop */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 border-r border-border bg-sidebar md:block">
-        <SidebarContent />
+        <SidebarContent currentUser={currentUser} personas={personas} />
       </aside>
 
       {/* Mobile */}
@@ -116,11 +201,7 @@ export function AppSidebar() {
       </div>
       {open && (
         <div className="fixed inset-0 z-40 md:hidden">
-          <div
-            className="absolute inset-0 bg-black/30"
-            onClick={() => setOpen(false)}
-            aria-hidden
-          />
+          <div className="absolute inset-0 bg-black/30" onClick={() => setOpen(false)} aria-hidden />
           <aside className="absolute inset-y-0 left-0 w-64 border-r border-border bg-background shadow-lg">
             <div className="flex justify-end p-2">
               <button
@@ -132,7 +213,11 @@ export function AppSidebar() {
                 <X className="size-5" />
               </button>
             </div>
-            <SidebarContent onNavigate={() => setOpen(false)} />
+            <SidebarContent
+              currentUser={currentUser}
+              personas={personas}
+              onNavigate={() => setOpen(false)}
+            />
           </aside>
         </div>
       )}
