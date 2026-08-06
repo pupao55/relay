@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { businessDaysBetween } from "@/lib/agent/engine";
 import { durationSince, dueLabel } from "@/lib/format";
 import { CandidatesTable, type CandidateRow } from "@/components/candidates-table";
 import { SOURCE_TYPE_LABELS, type SourceType } from "@/lib/types";
@@ -42,6 +43,8 @@ export default async function CandidatesPage() {
       dueTs: next ? next.dueAt.getTime() : null,
       timeInStage: durationSince(a.stageEnteredAt, now),
       hoursInStage: Math.floor((now.getTime() - a.stageEnteredAt.getTime()) / 3600_000),
+      toldLabel: a.status === "ACTIVE" ? `${durationSince(a.lastCandidateUpdateAt, now)} ago` : null,
+      toldOverdue: a.status === "ACTIVE" && businessDaysBetween(a.lastCandidateUpdateAt, now) >= 3,
       risk: a.risk,
       sourceType: a.source.type,
       sourceLabel: SOURCE_TYPE_LABELS[a.source.type as SourceType] ?? a.source.type,

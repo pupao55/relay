@@ -999,6 +999,68 @@ export async function rankCandidate(applicationId: string, direction: "up" | "do
   refresh();
 }
 
+/**
+ * One-click scorecard submission, in context. Clears the feedback blocker the
+ * moment the last scorecard lands and completes any open chase.
+ */
+export async function submitScorecard(
+  feedbackId: string,
+  rating: "STRONG_YES" | "YES" | "MIXED" | "NO",
+  summary?: string
+): Promise<string> {
+  const now = new Date();
+  const fb = await db.feedback.findUniqueOrThrow({
+    where: { id: feedbackId },
+    include: {
+      interviewer: true,
+      interview: { include: { application: { include: { candidate: true } } } },
+    },
+  });
+  if (fb.status === "SUBMITTED") return "Already submitted.";
+
+  await db.feedback.update({
+    where: { id: feedbackId },
+    data: {
+      status: "SUBMITTED",
+      rating,
+      summary: summary?.trim() || null,
+      submittedAt: now,
+    },
+  });
+  await db.application.update({
+    where: { id: fb.interview.applicationId },
+    data: { lastActivityAt: now },
+  });
+  await audit({
+    applicationId: fb.interview.applicationId,
+    actorType: "HUMAN",
+    actorName: fb.interviewer.name,
+    eventType: "FEEDBACK_SUBMITTED",
+    title: `${fb.interviewer.name} submitted their scorecard for ${fb.interview.application.candidate.name}`,
+    detail: summary?.trim() || undefined,
+    previousState: "PENDING",
+    newState: rating,
+  });
+
+  const stillPending = await db.feedback.count({
+    where: { interviewId: fb.interviewId, status: "PENDING" },
+  });
+  if (stillPending === 0) {
+    await db.action.updateMany({
+      where: {
+        applicationId: fb.interview.applicationId,
+        type: "FEEDBACK_REQUEST",
+        status: { in: ["PROPOSED", "WAITING", "APPROVED", "IN_PROGRESS"] },
+      },
+      data: { status: "COMPLETED", completedAt: now },
+    });
+  }
+  refresh();
+  return stillPending === 0
+    ? `Scorecard in — all feedback complete, the debrief is unblocked.`
+    : `Scorecard in — ${stillPending} still outstanding.`;
+}
+
 /** Move a candidate to #1 in their hiring manager's review queue. */
 export async function rankCandidateTop(applicationId: string) {
   const app = await db.application.findUniqueOrThrow({

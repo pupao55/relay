@@ -40,11 +40,11 @@ export default async function AnalyticsPage() {
 
   const [apps, actions, stages, feedback, interviews] = await Promise.all([
     db.application.findMany({
-      include: { stage: true, role: true, actions: true },
+      include: { stage: true, role: { include: { hiringManager: true } }, actions: true },
     }),
     db.action.findMany({ include: { owner: true } }),
     db.pipelineStage.findMany({ orderBy: { order: "asc" } }),
-    db.feedback.findMany({ include: { interview: true } }),
+    db.feedback.findMany({ include: { interview: true, interviewer: true } }),
     db.interview.findMany(),
   ]);
 
@@ -124,6 +124,36 @@ export default async function AnalyticsPage() {
     })
     .filter((s) => s.avgHours > 0 || s.slaHours <= 168);
 
+  // -- Named bottleneck: the stage losing the most time vs SLA, and the
+  // people currently sitting on work. Computed, not configured.
+  const bottleneck = [...stageWait]
+    .filter((s) => s.avgHours > 0)
+    .sort((a, b) => b.avgHours / b.slaHours - a.avgHours / a.slaHours)[0];
+  const slowPeople: { name: string; detail: string; hours: number }[] = [];
+  for (const f of feedback) {
+    if (f.status === "PENDING" && f.dueAt < now && f.interview.status === "COMPLETED") {
+      const h = (now.getTime() - f.dueAt.getTime()) / HOUR;
+      slowPeople.push({
+        name: f.interviewer.name,
+        detail: `scorecard ${fmtHours(h)} overdue`,
+        hours: h,
+      });
+    }
+  }
+  for (const a of active) {
+    if (a.stage.name === "Hiring Manager Review") {
+      const h = (now.getTime() - a.stageEnteredAt.getTime()) / HOUR - a.stage.slaHours;
+      if (h > 0) {
+        slowPeople.push({
+          name: a.role.hiringManager.name,
+          detail: `review ${fmtHours(h)} over SLA`,
+          hours: h,
+        });
+      }
+    }
+  }
+  const slowest = slowPeople.sort((a, b) => b.hours - a.hours).slice(0, 3);
+
   // -- Stage conversion ---------------------------------------------------
   const conversion = stages
     .filter((s) => s.kind !== "TERMINAL")
@@ -189,6 +219,29 @@ export default async function AnalyticsPage() {
       <div className="mb-5">
         <h1 className="text-xl font-semibold tracking-tight">Analytics</h1>
       </div>
+
+      {bottleneck && (
+        <div className="mb-4 rounded-lg border border-border bg-card p-4">
+          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Where hiring time goes
+          </div>
+          <p className="mt-1 text-sm">
+            <span className="font-semibold">{bottleneck.stage}</span> is the bottleneck — avg{" "}
+            {fmtHours(bottleneck.avgHours)} in stage vs {fmtHours(bottleneck.slaHours)} SLA.
+          </p>
+          {slowest.length > 0 && (
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              Waiting on:{" "}
+              {slowest.map((s, i) => (
+                <span key={`${s.name}-${i}`}>
+                  {i > 0 && " · "}
+                  <span className="font-medium text-foreground">{s.name}</span> ({s.detail})
+                </span>
+              ))}
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {stats.map((s) => (

@@ -43,6 +43,8 @@ export interface CandidateRow {
   dueTs: number | null;
   timeInStage: string;
   hoursInStage: number;
+  toldLabel: string | null;
+  toldOverdue: boolean;
   risk: string;
   sourceType: string;
   sourceLabel: string;
@@ -199,6 +201,9 @@ export function CandidatesTable({
               <TableHead className="h-8 text-xs font-medium">Owner</TableHead>
               {sortHeader("Due", "due")}
               {sortHeader("In Stage", "timeInStage")}
+              <TableHead className="h-8 text-xs font-medium" title="Last candidate-facing update — red at 3+ business days">
+                Cand. told
+              </TableHead>
               {sortHeader("Risk", "risk")}
               <TableHead className="h-8 text-xs font-medium">Source</TableHead>
             </TableRow>
@@ -206,7 +211,7 @@ export function CandidatesTable({
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="py-14 text-center">
+                <TableCell colSpan={11} className="py-14 text-center">
                   <SearchX className="mx-auto mb-2 size-5 text-muted-foreground" />
                   <p className="text-sm font-medium">No candidates match</p>
                   <p className="mt-0.5 text-[13px] text-muted-foreground">
@@ -279,6 +284,21 @@ export function CandidatesTable({
                   </TableCell>
                   <TableCell className="py-2 text-[13px] tabular-nums text-muted-foreground">
                     {r.status === "ACTIVE" ? r.timeInStage : "—"}
+                  </TableCell>
+                  <TableCell className="py-2 text-xs tabular-nums">
+                    {r.toldLabel ? (
+                      <span
+                        className={cn(
+                          r.toldOverdue
+                            ? "font-medium text-red-600 dark:text-red-400"
+                            : "text-muted-foreground"
+                        )}
+                      >
+                        {r.toldLabel}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="py-2">
                     {r.status === "ACTIVE" ? <RiskBadge risk={r.risk} /> : <span className="text-muted-foreground">—</span>}

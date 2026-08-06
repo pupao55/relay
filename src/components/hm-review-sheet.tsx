@@ -28,7 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { UserAvatar } from "@/components/user-avatar";
 import { addReviewNote, hmReviewDecision } from "@/lib/actions";
 import { showReviewReceipt } from "@/components/receipt-host";
-import type { ReviewReceipt } from "@/lib/types";
+import { DECLINE_REASONS, type ReviewReceipt } from "@/lib/types";
 
 export interface HmReviewData {
   applicationId: string;
@@ -60,13 +60,15 @@ export function HmReviewSheet({
 }) {
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
+  const [declineMode, setDeclineMode] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  const decide = (decision: ReviewReceipt["decision"]) =>
+  const decide = (decision: ReviewReceipt["decision"], reason?: string) =>
     startTransition(async () => {
-      const r = await hmReviewDecision(data.applicationId, decision, note.trim() || undefined);
+      const r = await hmReviewDecision(data.applicationId, decision, reason ?? (note.trim() || undefined));
       setOpen(false);
       setNote("");
+      setDeclineMode(false);
       showReviewReceipt(r);
     });
 
@@ -212,38 +214,68 @@ export function HmReviewSheet({
           </section>
 
           <section className="border-t border-border pt-3">
-            <div className="grid grid-cols-2 gap-2">
-              <Button size="sm" className="h-8 text-[13px]" disabled={pending} onClick={() => decide("ADVANCE")}>
-                <Check className="size-3.5" /> Advance
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 text-[13px]"
-                disabled={pending}
-                onClick={() => decide("REQUEST_INFO")}
-              >
-                <ClipboardList className="size-3.5" /> Request info
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 text-[13px]"
-                disabled={pending}
-                onClick={() => decide("REDIRECT")}
-              >
-                <ArrowRight className="size-3.5" /> Redirect
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 text-[13px] text-red-600 hover:text-red-700 dark:text-red-400"
-                disabled={pending}
-                onClick={() => decide("DECLINE")}
-              >
-                <ThumbsDown className="size-3.5" /> Decline
-              </Button>
-            </div>
+            {declineMode ? (
+              <div>
+                <p className="text-[13px] font-medium">
+                  Why not? This calibrates sourcing for {data.roleTitle}.
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {DECLINE_REASONS.map((reason) => (
+                    <button
+                      key={reason}
+                      type="button"
+                      disabled={pending}
+                      onClick={() =>
+                        decide("DECLINE", `${reason}${note.trim() ? ` — ${note.trim()}` : ""}`)
+                      }
+                      className="rounded-full border border-red-200 px-2.5 py-1 text-xs font-medium text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
+                    >
+                      {reason}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setDeclineMode(false)}
+                    className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <Button size="sm" className="h-8 text-[13px]" disabled={pending} onClick={() => decide("ADVANCE")}>
+                  <Check className="size-3.5" /> Advance
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-[13px]"
+                  disabled={pending}
+                  onClick={() => decide("REQUEST_INFO")}
+                >
+                  <ClipboardList className="size-3.5" /> Request info
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-[13px]"
+                  disabled={pending}
+                  onClick={() => decide("REDIRECT")}
+                >
+                  <ArrowRight className="size-3.5" /> Redirect
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-[13px] text-red-600 hover:text-red-700 dark:text-red-400"
+                  disabled={pending}
+                  onClick={() => setDeclineMode(true)}
+                >
+                  <ThumbsDown className="size-3.5" /> Decline
+                </Button>
+              </div>
+            )}
             <p className="mt-2 text-xs leading-snug text-muted-foreground">
               Acting as {data.hmName} · audit-logged
             </p>

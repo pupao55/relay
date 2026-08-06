@@ -161,6 +161,22 @@ check("timeline: next action creation audited", /Created next action/i.test(time
 await shot("05-maya-timeline");
 
 // ---------------------------------------------------------------------------
+// 3a. One-click scorecards + panel signal strip (Wei Zhang's debrief)
+// ---------------------------------------------------------------------------
+await page.goto(BASE + "/candidates", { waitUntil: "networkidle" });
+await page.locator("a:has-text('Wei Zhang')").first().click();
+await page.waitForSelector("text=Next best action", { timeout: 8000 });
+check("panel signal strip renders", /\/4 in/.test(await page.locator("main").innerText()));
+await page.locator("button[role='tab']:has-text('feedback')").click();
+await page.waitForTimeout(400);
+const pendingButtons = await page.locator("button:has-text('Strong yes')").count();
+check("pending scorecards offer one-click submit", pendingButtons >= 2, `${pendingButtons} pending`);
+await page.locator("button:has-text('Yes')").nth(1).click();
+await page.waitForSelector("text=Scorecard in", { timeout: 8000 });
+check("scorecard submits in one click", true);
+await page.waitForTimeout(1500);
+
+// ---------------------------------------------------------------------------
 // 3b. HM review queue: pre-SLA visibility, internal notes, one-click advance
 // ---------------------------------------------------------------------------
 await page.goto(BASE + "/", { waitUntil: "networkidle" });
@@ -300,6 +316,7 @@ const analytics = await page.locator("main").innerText();
 check("analytics: idle days outstanding", /Idle candidate-days outstanding/i.test(analytics));
 check("analytics: idle days resolved", /Idle days resolved by Relay/i.test(analytics));
 check("analytics: formula documented", /formula/i.test(analytics));
+check("analytics: named bottleneck callout", /Where hiring time goes/i.test(analytics));
 
 // ---------------------------------------------------------------------------
 // 6. Personas: the sidebar switcher changes whose Relay this is
@@ -323,6 +340,19 @@ check(
   "HM nav hides recruiter operations",
   !hmNav.includes("Automations") && !hmNav.includes("Settings") && hmNav.includes("Candidates")
 );
+
+// Structured decline: James declines Daniel with a calibration reason.
+await page.locator("li", { has: page.locator("text=Daniel Reyes") }).first()
+  .locator("button:has-text('Review')").click();
+await page.waitForTimeout(600);
+await page.locator("[role='dialog'] button:has-text('Decline')").click();
+await page.waitForTimeout(300);
+check("decline asks for a structured reason", (await page.locator("text=Why not?").count()) > 0);
+await page.locator("[role='dialog'] button:has-text('Timing')").click();
+await page.waitForSelector("text=Declined", { timeout: 8000 });
+check("structured decline executes", true);
+await page.locator("[role='dialog'] button:has-text('Done')").click();
+await page.waitForTimeout(1500);
 await page.locator("button[aria-label='Switch persona']").first().click();
 await page.locator("[role='menuitem']:has-text('Sarah Kim')").click();
 await page.waitForTimeout(1500);

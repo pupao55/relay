@@ -14,6 +14,7 @@ import { AttentionList, type AttentionItem } from "@/components/attention-list";
 import type { ExecutionState } from "@/components/status-badges";
 import type { HmReviewData } from "@/components/hm-review-sheet";
 import { ReviewQueueCard, type ReviewQueueItem } from "@/components/review-queue-card";
+import { ScorecardButtons } from "@/components/scorecard-buttons";
 import { RunAgentButton } from "@/components/run-agent-button";
 import { ALWAYS_APPROVAL_ACTION_TYPES, type ActionType } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -358,15 +359,24 @@ export default async function CommandCenterPage() {
                         <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
                           {f.interview.name} · {app.role.title}
                         </span>
-                        <span
-                          className={`w-20 shrink-0 text-right text-xs tabular-nums ${
-                            f.interview.status === "COMPLETED" && d.overdue
-                              ? "font-medium text-red-600 dark:text-red-400"
-                              : "text-muted-foreground"
-                          }`}
-                        >
-                          {f.interview.status === "COMPLETED" ? `due ${d.label}` : "after interview"}
-                        </span>
+                        {f.interview.status === "COMPLETED" ? (
+                          <span className="flex shrink-0 items-center gap-2">
+                            <span
+                              className={`text-xs tabular-nums ${
+                                d.overdue
+                                  ? "font-medium text-red-600 dark:text-red-400"
+                                  : "text-muted-foreground"
+                              }`}
+                            >
+                              due {d.label}
+                            </span>
+                            <ScorecardButtons feedbackId={f.id} />
+                          </span>
+                        ) : (
+                          <span className="w-24 shrink-0 text-right text-xs text-muted-foreground">
+                            after interview
+                          </span>
+                        )}
                       </li>
                     );
                   })}

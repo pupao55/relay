@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, CircleAlert, Star } from "lucide-react";
 import { db } from "@/lib/db";
 import { durationSince } from "@/lib/format";
-import { BLOCKER_LABELS, type BlockerType } from "@/lib/types";
+import { BLOCKER_LABELS, DECLINE_REASONS, type BlockerType } from "@/lib/types";
 import { CompareDialog } from "@/components/compare-dialog";
 import type { HmReviewData } from "@/components/hm-review-sheet";
 import { MomentumBadge, RiskBadge } from "@/components/status-badges";
@@ -96,6 +96,18 @@ export default async function RoleDetailPage({
       })),
     };
   };
+
+  // Decline calibration: structured reasons from HM declines teach sourcing.
+  const declineCounts = new Map<string, number>();
+  for (const a of role.applications) {
+    if (a.status !== "REJECTED" || !a.resolutionReason) continue;
+    const head = a.resolutionReason.split(" — ")[0];
+    const known = DECLINE_REASONS.find((r) => head.startsWith(r));
+    const key = known ?? "Other";
+    declineCounts.set(key, (declineCounts.get(key) ?? 0) + 1);
+  }
+  const declines = [...declineCounts.entries()].sort((a, b) => b[1] - a[1]);
+  const declineTotal = declines.reduce((s, [, n]) => s + n, 0);
 
   // Common blockers
   const blockerCounts = new Map<string, number>();
@@ -250,6 +262,28 @@ export default async function RoleDetailPage({
         </div>
 
         <div className="space-y-4">
+          {declineTotal > 0 && (
+            <section className="rounded-lg border border-border bg-card p-4">
+              <h2 className="text-sm font-semibold">Decline calibration</h2>
+              <ul className="mt-2 space-y-1.5">
+                {declines.map(([reason, count]) => (
+                  <li key={reason} className="text-[13px]">
+                    <div className="flex items-center justify-between">
+                      <span>{reason}</span>
+                      <span className="tabular-nums text-muted-foreground">{count}</span>
+                    </div>
+                    <div className="mt-0.5 h-1 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-red-400"
+                        style={{ width: `${(count / declineTotal) * 100}%` }}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           <section className="rounded-lg border border-border bg-card p-4">
             <h2 className="text-sm font-semibold">Common blockers</h2>
             {blockers.length === 0 ? (

@@ -21,6 +21,8 @@ import { SOURCE_TYPE_LABELS, type SourceType } from "@/lib/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ActionControls } from "@/components/action-controls";
 import { HmReviewSheet, type HmReviewData } from "@/components/hm-review-sheet";
+import { ScorecardButtons } from "@/components/scorecard-buttons";
+import { SignalStrip } from "@/components/signal-strip";
 import { NoteForm } from "@/components/note-form";
 import { StageSelect } from "@/components/stage-select";
 import { MomentumBadge, RiskBadge, SourceBadge, StageBadge, ActionStatusBadge } from "@/components/status-badges";
@@ -96,6 +98,11 @@ export default async function CandidateDetailPage({
     .filter((r) => r.overlap.length >= 2)
     .sort((a, b) => b.overlap.length - a.overlap.length)
     .slice(0, 2);
+
+  const panelSignal = app.interviews
+    .filter((iv) => iv.status === "COMPLETED")
+    .flatMap((iv) => iv.feedback)
+    .map((f) => ({ name: f.interviewer.name, rating: f.status === "SUBMITTED" ? f.rating : null }));
 
   const nextAction = app.actions.find((a) => OPEN_STATUSES.includes(a.status));
   const facts: string[] = nextAction ? JSON.parse(nextAction.supportingFacts) : [];
@@ -209,6 +216,11 @@ export default async function CandidateDetailPage({
               {app.status === "ACTIVE" && <MomentumBadge momentum={app.momentum} />}
               {app.status === "ACTIVE" && <RiskBadge risk={app.risk} />}
               <SourceBadge type={app.source.type} name={app.source.name} />
+              {panelSignal.length > 0 && (
+                <span className="ml-1">
+                  <SignalStrip entries={panelSignal} />
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -625,15 +637,18 @@ export default async function CandidateDetailPage({
                           >
                             {f.rating.replace("_", " ").toLowerCase()}
                           </span>
+                        ) : iv.status === "COMPLETED" ? (
+                          <span className="flex items-center gap-2">
+                            {overdue && (
+                              <span className="rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-xs font-medium text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400">
+                                overdue {durationSince(f.dueAt, now)}
+                              </span>
+                            )}
+                            <ScorecardButtons feedbackId={f.id} />
+                          </span>
                         ) : (
-                          <span
-                            className={`rounded border px-1.5 py-0.5 text-xs font-medium ${
-                              overdue
-                                ? "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400"
-                                : "border-border bg-muted text-muted-foreground"
-                            }`}
-                          >
-                            {overdue ? `overdue ${durationSince(f.dueAt, now)}` : "pending"}
+                          <span className="rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+                            after interview
                           </span>
                         )}
                       </div>

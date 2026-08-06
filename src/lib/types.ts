@@ -211,6 +211,16 @@ export const AUTOMATION_MODE_META: Record<AutomationMode, { label: string; descr
   },
 };
 
+// Structured decline reasons — every HM "no" calibrates sourcing for the role.
+export const DECLINE_REASONS = [
+  "Seniority",
+  "Compensation",
+  "Domain fit",
+  "Skills gap",
+  "Timing",
+] as const;
+export type DeclineReason = (typeof DECLINE_REASONS)[number];
+
 // ---------- Execution receipts ----------
 
 /** Returned by approveAction — what Relay just did, shown to the approver. */
