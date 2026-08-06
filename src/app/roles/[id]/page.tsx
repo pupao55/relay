@@ -4,6 +4,8 @@ import { ArrowLeft, ArrowRight, Check, CircleAlert, Star } from "lucide-react";
 import { db } from "@/lib/db";
 import { durationSince } from "@/lib/format";
 import { BLOCKER_LABELS, type BlockerType } from "@/lib/types";
+import { CompareDialog } from "@/components/compare-dialog";
+import type { HmReviewData } from "@/components/hm-review-sheet";
 import { MomentumBadge, RiskBadge } from "@/components/status-badges";
 import { UserAvatar } from "@/components/user-avatar";
 
@@ -26,8 +28,15 @@ export default async function RoleDetailPage({
         include: {
           candidate: true,
           stage: true,
+          source: true,
           actions: { include: { owner: true } },
           interviews: { include: { feedback: { include: { interviewer: true } } } },
+          communications: {
+            where: { channel: "NOTE" },
+            orderBy: { sentAt: "desc" },
+            take: 3,
+            include: { sentBy: true },
+          },
         },
       },
     },
@@ -45,6 +54,48 @@ export default async function RoleDetailPage({
       stage: s,
       apps: active.filter((a) => a.stageId === s.id),
     }));
+
+  const buildCompare = (
+    app: (typeof role.applications)[number]
+  ): HmReviewData & { candidateId: string } => {
+    const cand = app.candidate;
+    const strengths: string[] = JSON.parse(cand.strengths);
+    const concerns: string[] = JSON.parse(cand.concerns);
+    const prior: { company: string; title: string; years: string }[] = JSON.parse(
+      cand.priorCompanies
+    );
+    const profileText = (strengths.join(" ") + " " + cand.summary).toLowerCase();
+    return {
+      candidateId: cand.id,
+      applicationId: app.id,
+      candidateName: cand.name,
+      currentTitle: cand.currentTitle,
+      currentCompany: cand.currentCompany,
+      roleTitle: role.title,
+      hmName: role.hiringManager.name,
+      summary: cand.summary,
+      evidence: required.map((criterion) => ({
+        criterion,
+        hit: criterion
+          .toLowerCase()
+          .split(/[^a-z+]+/)
+          .some((w) => w.length > 3 && profileText.includes(w)),
+      })),
+      primaryConcern: concerns[0] ?? null,
+      timingRisk:
+        cand.competingProcess && cand.competingDeadline
+          ? `${cand.competingProcess} on ${cand.competingDeadline.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+          : null,
+      timeInStage: durationSince(app.stageEnteredAt, now),
+      sourceName: app.source.name,
+      history: prior.map((p) => `${p.company} · ${p.title} · ${p.years}`),
+      notes: app.communications.map((c) => ({
+        author: c.sentBy?.name ?? "Team",
+        when: `${durationSince(c.sentAt, now)} ago`,
+        body: c.body,
+      })),
+    };
+  };
 
   // Common blockers
   const blockerCounts = new Map<string, number>();
@@ -150,7 +201,10 @@ export default async function RoleDetailPage({
               {pipeline.map(({ stage, apps }) => (
                 <div key={stage.id}>
                   <div className="flex items-center justify-between">
-                    <span className="text-[13px] font-medium">{stage.name}</span>
+                    <span className="flex items-center gap-2 text-[13px] font-medium">
+                      {stage.name}
+                      {apps.length > 1 && <CompareDialog items={apps.map(buildCompare)} />}
+                    </span>
                     <span className="text-xs tabular-nums text-muted-foreground">
                       {apps.length} candidate{apps.length === 1 ? "" : "s"} · SLA {stage.slaHours}h
                     </span>

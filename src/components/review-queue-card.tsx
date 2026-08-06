@@ -8,6 +8,7 @@
 import { useTransition } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { CompareDialog } from "@/components/compare-dialog";
 import { HmReviewSheet, type HmReviewData } from "@/components/hm-review-sheet";
 import { UserAvatar } from "@/components/user-avatar";
 import { rankCandidate } from "@/lib/actions";
@@ -75,6 +76,13 @@ export function ReviewQueueCard({
               <span className="text-xs text-muted-foreground">
                 {list.length} waiting
               </span>
+              {list.length > 1 && (
+                <span className="ml-auto">
+                  <CompareDialog
+                    items={list.map((x) => ({ ...x.data, candidateId: x.candidateId }))}
+                  />
+                </span>
+              )}
             </div>
             <ul className="mt-1.5 space-y-1.5">
               {list.map((it, i) => (

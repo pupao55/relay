@@ -77,6 +77,15 @@ const danielRank = await page
   .first()
   .innerText();
 check("manager reorder persists (Daniel now #1)", danielRank.trim() === "1", `rank ${danielRank.trim()}`);
+
+// Side-by-side comparison of a manager's waiting candidates.
+await page.locator("button:has-text('Compare')").first().click();
+await page.waitForTimeout(600);
+const cmp = await page.locator("[role='dialog']").innerText();
+check("compare shows candidates side by side", /Maya Chen/.test(cmp) && /Daniel Reyes/.test(cmp));
+check("compare aligns criteria fit per row", /alpha research/i.test(cmp) && /\d\/4/.test(cmp));
+await page.keyboard.press("Escape");
+await page.waitForTimeout(400);
 await shot("01-command-center");
 
 // ---------------------------------------------------------------------------
