@@ -49,9 +49,16 @@ check(
   "unowned error-state group renders",
   (await page.locator("section[aria-label='Unowned — error state']").count()) === 1
 );
+// Triage rows for scanning; exactly one spotlight expanded with the full anatomy.
+const rowCount = await page.locator("[data-testid='intervention-row']").count();
+check("triage rows render", rowCount >= 5, `${rowCount} rows`);
 check(
-  "cards state escalation behavior",
-  (await page.locator("text=If no one responds").count()) >= 3
+  "exactly one spotlight expanded by default",
+  (await page.locator("[data-testid='intervention-row'][aria-expanded='true']").count()) === 1
+);
+check(
+  "spotlight states escalation behavior",
+  (await page.locator("text=If no one responds").count()) === 1
 );
 
 // HM stack ranking: James Wu has Maya (#1) and Daniel (#2) waiting; the
@@ -212,6 +219,13 @@ check("new pipeline has a next action from minute one", /redirected application/
 await page.goto(BASE + "/", { waitUntil: "networkidle" });
 const tomasCard = page.locator("li", { has: page.locator("a", { hasText: "Tomás Silva" }) }).first();
 if (await tomasCard.count()) {
+  // Click the triage row to move the spotlight, then approve.
+  await tomasCard.locator("[data-testid='intervention-row']").click();
+  await page.waitForTimeout(400);
+  check(
+    "clicking a row moves the spotlight",
+    (await tomasCard.locator("button:has-text('Approve')").count()) >= 1
+  );
   await tomasCard.locator("button:has-text('Approve')").first().click();
   await page.waitForSelector("text=Action performed", { timeout: 8000 });
   const schedReceipt = await page.locator("[role='dialog']").innerText();
@@ -240,11 +254,11 @@ await page.waitForTimeout(1500);
 // 5. Remaining loop mechanics (dismiss, bulk approve, automations, audit)
 // ---------------------------------------------------------------------------
 await page.goto(BASE + "/", { waitUntil: "networkidle" });
-const beforeDismiss = await page.locator("button:has-text('Dismiss')").count();
-if (beforeDismiss > 0) {
+const beforeDismiss = await page.locator("[data-testid='intervention-row']").count();
+if ((await page.locator("button:has-text('Dismiss')").count()) > 0) {
   await page.locator("button:has-text('Dismiss')").first().click();
   await page.waitForTimeout(2500);
-  const afterDismiss = await page.locator("button:has-text('Dismiss')").count();
+  const afterDismiss = await page.locator("[data-testid='intervention-row']").count();
   check("dismiss removes item", afterDismiss === beforeDismiss - 1, `${beforeDismiss} -> ${afterDismiss}`);
 } else {
   check("dismiss removes item", true, "skipped — queue empty");
