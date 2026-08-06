@@ -410,11 +410,40 @@ function nextBusinessDaySlot(from = new Date()): Date {
   return d;
 }
 
+/** Three offered slots across the next business days, varied times. */
+function proposedSlotOptions(from = new Date()): Date[] {
+  const times: [number, number][] = [
+    [10, 0],
+    [13, 30],
+    [15, 0],
+  ];
+  const slots: Date[] = [];
+  let cursor = new Date(from);
+  for (const [h, m] of times) {
+    cursor = nextBusinessDaySlot(cursor);
+    const slot = new Date(cursor);
+    slot.setHours(h, m, 0, 0);
+    slots.push(slot);
+  }
+  return slots;
+}
+
+function slotLabel(d: Date): string {
+  return d.toLocaleString("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 /**
- * Executes an approved scheduling action: books the application's unscheduled
- * interview into the next available slot, sets scorecard deadlines, sends the
- * candidate the confirmation, and audits everything. Returns null when there
- * is no unscheduled interview to book.
+ * Executes an approved scheduling action as a handshake, not a decree:
+ * Relay offers the candidate three concrete times (mock panel availability),
+ * the interview moves to AWAITING_CANDIDATE, and the action waits on the
+ * candidate's pick — which arrives via sync (see simulateAtsSync) and
+ * auto-confirms. Returns null when there is no unscheduled interview.
  */
 async function executeScheduling(
   actionId: string,
@@ -437,25 +466,13 @@ async function executeScheduling(
   const interview = app.interviews.find((iv) => iv.status === "NEEDS_SCHEDULING");
   if (!interview) return null;
 
-  const slot = nextBusinessDaySlot(now);
-  const slotLabel = slot.toLocaleString("en-US", {
-    weekday: "long",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  const slots = proposedSlotOptions(now);
   const cand = app.candidate;
   const recruiter = app.role.recruiter;
-  const panel = interview.panelists.map((p) => p.user.name);
 
   await db.interview.update({
     where: { id: interview.id },
-    data: { scheduledAt: slot, status: "SCHEDULED" },
-  });
-  await db.feedback.updateMany({
-    where: { interviewId: interview.id, status: "PENDING" },
-    data: { dueAt: new Date(slot.getTime() + (interview.durationMins + 12 * 60) * 60_000) },
+    data: { status: "AWAITING_CANDIDATE", proposedSlots: JSON.stringify(slots) },
   });
 
   await db.communication.create({
@@ -463,18 +480,15 @@ async function executeScheduling(
       applicationId: app.id,
       direction: "OUTBOUND",
       channel: "EMAIL",
-      subject: `${interview.name} confirmed — ${slotLabel}`,
-      body: `Hi ${cand.name.split(" ")[0]},\n\nYour ${interview.name.toLowerCase()} for the ${app.role.title} role is confirmed for ${slotLabel} (${interview.durationMins} min)${panel.length ? ` with ${panel.join(" and ")}` : ""}. A calendar invite follows.\n\nBest,\n${recruiter.name}`,
+      subject: `Pick a time — ${interview.name}`,
+      body: `Hi ${cand.name.split(" ")[0]},\n\nGreat news — we'd like to schedule your ${interview.name.toLowerCase()} (${interview.durationMins} min) for the ${app.role.title} role. Any of these work?\n\n${slots.map((s, i) => `  ${i + 1}. ${slotLabel(s)}`).join("\n")}\n\nReply with a number and it's booked.\n\nBest,\n${recruiter.name}`,
       sentById: recruiter.id,
       sentAt: now,
       candidateFacing: true,
     },
   });
 
-  await db.action.update({
-    where: { id: actionId },
-    data: { status: "COMPLETED", completedAt: now },
-  });
+  await db.action.update({ where: { id: actionId }, data: { status: "WAITING" } });
   await db.application.update({
     where: { id: app.id },
     data: {
@@ -495,7 +509,7 @@ async function executeScheduling(
     eventType: "ACTION_APPROVED",
     title: `Approved: ${action.title}`,
     previousState: action.status,
-    newState: "COMPLETED",
+    newState: "WAITING",
     rationale: action.rationale,
   });
   await audit({
@@ -504,21 +518,21 @@ async function executeScheduling(
     actorType: "AGENT",
     actorName: "Relay Agent",
     eventType: "AGENT_EXECUTION",
-    title: `Scheduled ${cand.name}'s ${interview.name.toLowerCase()} for ${slotLabel}`,
-    detail: `Confirmation emailed to ${cand.name}; scorecards due 12h after the interview.`,
-    newState: "SCHEDULED",
-    rationale: "Executed after human approval.",
+    title: `Offered ${cand.name} three times for the ${interview.name.toLowerCase()}`,
+    detail: slots.map(slotLabel).join(" · "),
+    newState: "AWAITING_CANDIDATE",
+    rationale: "Executed after human approval; auto-confirms when the candidate picks.",
   });
 
   refresh();
   return {
-    performed: `Booked the ${interview.name.toLowerCase()} for ${slotLabel} and emailed ${cand.name} the confirmation`,
+    performed: `Offered ${cand.name} three times for the ${interview.name.toLowerCase()}`,
     recipient: cand.name,
-    channel: "Email + calendar",
+    channel: "Email",
     candidateName: cand.name,
-    resultingState: `${interview.name} scheduled · candidate Moving · scheduling blocker cleared`,
-    nextAction: `Scorecards from ${panel.join(", ") || "the panel"} due 12h after the interview — Relay chases if late`,
-    escalation: action.escalationNote,
+    resultingState: `Awaiting ${cand.name.split(" ")[0]}'s pick — books itself the moment they reply`,
+    nextAction: `Candidate picks a slot → interview confirmed, scorecard deadlines set automatically`,
+    escalation: "No pick within 48h: Relay re-offers fresh times and flags the coordinator pool.",
   };
 }
 
@@ -1212,7 +1226,73 @@ export async function createAutomationRule(input: {
 export async function simulateAtsSync(): Promise<string> {
   const now = new Date();
 
-  // Event 1: an overdue scorecard lands.
+  // Event 1: a candidate replies with their slot pick — the scheduling
+  // handshake closes itself.
+  const awaiting = await db.interview.findFirst({
+    where: { status: "AWAITING_CANDIDATE", application: { status: "ACTIVE" } },
+    include: {
+      panelists: { include: { user: true } },
+      application: { include: { candidate: true, role: { include: { recruiter: true } } } },
+    },
+  });
+  if (awaiting && awaiting.proposedSlots) {
+    const slots: string[] = JSON.parse(awaiting.proposedSlots);
+    const picked = new Date(slots[1] ?? slots[0]);
+    const cand = awaiting.application.candidate;
+    const pickedLabel = slotLabel(picked);
+
+    await db.interview.update({
+      where: { id: awaiting.id },
+      data: { status: "SCHEDULED", scheduledAt: picked, proposedSlots: null },
+    });
+    await db.feedback.updateMany({
+      where: { interviewId: awaiting.id, status: "PENDING" },
+      data: { dueAt: new Date(picked.getTime() + (awaiting.durationMins + 12 * 60) * 60_000) },
+    });
+    await db.communication.create({
+      data: {
+        applicationId: awaiting.applicationId,
+        direction: "INBOUND",
+        channel: "EMAIL",
+        subject: `Re: Pick a time — ${awaiting.name}`,
+        body: `Option 2 works great — see you ${pickedLabel}!`,
+        sentAt: now,
+        candidateFacing: true,
+      },
+    });
+    await db.action.updateMany({
+      where: {
+        applicationId: awaiting.applicationId,
+        type: "SCHEDULING",
+        status: { in: ["PROPOSED", "WAITING", "APPROVED", "IN_PROGRESS"] },
+      },
+      data: { status: "COMPLETED", completedAt: now },
+    });
+    await db.application.update({
+      where: { id: awaiting.applicationId },
+      data: {
+        lastActivityAt: now,
+        momentum: "MOVING",
+        risk: "LOW",
+        blockerType: "NONE",
+        blockerDescription: null,
+      },
+    });
+    await audit({
+      applicationId: awaiting.applicationId,
+      actorType: "SYSTEM",
+      actorName: "Email Sync",
+      eventType: "SLOT_PICKED",
+      title: `${cand.name} picked a time — ${awaiting.name} confirmed for ${pickedLabel}`,
+      detail: `Interview auto-confirmed; scorecards due 12h after. Panel: ${awaiting.panelists.map((p) => p.user.name).join(", ") || "TBD"}.`,
+      previousState: "AWAITING_CANDIDATE",
+      newState: "SCHEDULED",
+    });
+    refresh();
+    return `Email event: ${cand.name} picked a time — ${awaiting.name.toLowerCase()} confirmed for ${pickedLabel}. Scorecard deadlines set.`;
+  }
+
+  // Event 2: an overdue scorecard lands.
   const overdue = await db.feedback.findFirst({
     where: {
       status: "PENDING",

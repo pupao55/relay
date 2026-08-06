@@ -249,26 +249,40 @@ if (await tomasCard.count()) {
   await tomasCard.locator("button:has-text('Approve')").first().click();
   await page.waitForSelector("text=Action performed", { timeout: 8000 });
   const schedReceipt = await page.locator("[role='dialog']").innerText();
-  check("scheduling receipt: interview booked", /Booked the phone screen/i.test(schedReceipt));
-  check("scheduling receipt: candidate confirmation sent", /confirmation/i.test(schedReceipt));
-  check("scheduling receipt: scorecard deadline set", /Scorecards?/i.test(schedReceipt));
+  check("scheduling receipt: three slots offered", /Offered .* three times/i.test(schedReceipt));
+  check("scheduling receipt: awaiting the candidate's pick", /Awaiting/i.test(schedReceipt));
+  check("scheduling receipt: re-offer escalation", /re-offers/i.test(schedReceipt));
   await page.locator("[role='dialog'] button:has-text('Done')").click();
   await page.waitForTimeout(1500);
 } else {
-  check("scheduling receipt: interview booked", false, "Tomás Silva card not found");
+  check("scheduling receipt: three slots offered", false, "Tomás Silva card not found");
 }
 
 // ---------------------------------------------------------------------------
-// 4c. Simulated ATS webhook: scorecard lands, blocker clears
+// 4c. Inbound sync closes loops: slot pick confirms, scorecard lands
 // ---------------------------------------------------------------------------
 await page.goto(BASE + "/settings", { waitUntil: "networkidle" });
 await page.locator("button:has-text('Simulate sync event')").click();
 await page.waitForSelector("text=Webhook received", { timeout: 8000 });
 check(
-  "ATS sync event submits an overdue scorecard",
-  (await page.locator("text=submitted their scorecard").count()) > 0
+  "candidate slot pick auto-confirms the interview",
+  (await page.locator("text=picked a time").count()) > 0
 );
 await page.waitForTimeout(1500);
+await page.locator("button:has-text('Simulate sync event')").click();
+await page.waitForSelector("text=submitted their scorecard", { timeout: 8000 });
+check("next sync event submits an overdue scorecard", true);
+await page.waitForTimeout(1200);
+
+// Interview kit visible on the now-scheduled interview.
+await page.goto(BASE + "/candidates", { waitUntil: "networkidle" });
+await page.locator("a:has-text('Tomás Silva')").first().click();
+await page.waitForTimeout(1200);
+await page.locator("button[role='tab']:has-text('interviews')").click();
+await page.waitForTimeout(400);
+const ivTab = await page.locator("main").innerText();
+check("interview auto-confirmed from pick", /scheduled/i.test(ivTab));
+check("interview kit assigns focus per panelist", /Interview kit/i.test(ivTab));
 
 // ---------------------------------------------------------------------------
 // 5. Remaining loop mechanics (dismiss, bulk approve, automations, audit)

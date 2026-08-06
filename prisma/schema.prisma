@@ -253,9 +253,11 @@ model Interview {
   id            String    @id @default(cuid())
   applicationId String
   name          String
-  // NEEDS_SCHEDULING | SCHEDULED | COMPLETED | CANCELLED
+  // NEEDS_SCHEDULING | AWAITING_CANDIDATE | SCHEDULED | COMPLETED | CANCELLED
   status        String
   scheduledAt   DateTime?
+  // JSON ISO-date[] — slots offered to the candidate while AWAITING_CANDIDATE
+  proposedSlots String?
   durationMins  Int       @default(60)
 
   application Application         @relation(fields: [applicationId], references: [id])

@@ -21,6 +21,7 @@ import { SOURCE_TYPE_LABELS, type SourceType } from "@/lib/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ActionControls } from "@/components/action-controls";
 import { HmReviewSheet, type HmReviewData } from "@/components/hm-review-sheet";
+import { buildInterviewKit } from "@/lib/interview-kit";
 import { ScorecardButtons } from "@/components/scorecard-buttons";
 import { SignalStrip } from "@/components/signal-strip";
 import { NoteForm } from "@/components/note-form";
@@ -580,18 +581,33 @@ export default async function CandidateDetailPage({
                             ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400"
                             : iv.status === "SCHEDULED"
                               ? "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-400"
-                              : iv.status === "NEEDS_SCHEDULING"
+                              : iv.status === "NEEDS_SCHEDULING" || iv.status === "AWAITING_CANDIDATE"
                                 ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400"
                                 : "border-border bg-muted text-muted-foreground"
                         }`}
                       >
-                        {iv.status.replace("_", " ").toLowerCase()}
+                        {iv.status === "AWAITING_CANDIDATE"
+                          ? "awaiting candidate's pick"
+                          : iv.status.replace("_", " ").toLowerCase()}
                       </span>
                     </div>
                     <span className="text-[13px] tabular-nums text-muted-foreground">
                       {iv.scheduledAt ? shortDateTime(iv.scheduledAt) : "Not scheduled"} · {iv.durationMins} min
                     </span>
                   </div>
+                  {iv.status === "AWAITING_CANDIDATE" && iv.proposedSlots && (
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <span className="text-xs text-muted-foreground">Offered:</span>
+                      {(JSON.parse(iv.proposedSlots) as string[]).map((s) => (
+                        <span
+                          key={s}
+                          className="rounded border border-border bg-muted/50 px-1.5 py-0.5 text-xs tabular-nums text-muted-foreground"
+                        >
+                          {shortDateTime(s)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <span className="text-xs text-muted-foreground">Panel:</span>
                     {iv.panelists.map((p) => (
@@ -600,6 +616,27 @@ export default async function CandidateDetailPage({
                       </span>
                     ))}
                   </div>
+                  {iv.status !== "COMPLETED" && iv.status !== "CANCELLED" && iv.panelists.length > 0 && (
+                    <div className="mt-2.5 rounded-md border border-border bg-muted/40 p-2.5">
+                      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Interview kit
+                      </div>
+                      <ul className="mt-1.5 space-y-1">
+                        {buildInterviewKit(
+                          required,
+                          concerns,
+                          iv.panelists.map((p) => p.user.name)
+                        ).map((entry) => (
+                          <li key={entry.panelist} className="flex items-start gap-2 text-xs leading-snug">
+                            <span className="w-24 shrink-0 font-medium">
+                              {entry.panelist.split(" ")[0]}
+                            </span>
+                            <span className="text-muted-foreground">{entry.focus.join(" · ")}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

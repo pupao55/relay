@@ -70,3 +70,19 @@ referral portal. ([work-management.org](https://work-management.org/hr/lever-rev
 | 3 | P1 | **Candidate-touch visibility** — "last told N ago / owed update" as a first-class column on Candidates, red at 3+ business days |
 | 4 | P2 | **Structured decline reasons** — HM decline/redirect picks a reason chip (seniority, compensation, domain, skills, timing); role page shows the calibration histogram so sourcing self-corrects |
 | 5 | P5 | **Named bottlenecks** — Analytics leads with "where hiring time goes": the bottleneck stage vs SLA and the slowest responders this week, computed, not configured |
+
+## Follow-on build: the two deepest learnings
+
+**Scheduling handshake (Ashby's lesson, adapted).** The single biggest admin sink is
+calendar coordination. Relay's scheduling execution is now a handshake instead of a
+decree: approving a scheduling action offers the candidate three concrete times (mock
+panel availability), the interview moves to *awaiting candidate's pick*, and the pick —
+arriving as an inbound sync event — auto-confirms the slot, sets scorecard deadlines,
+and closes the action. Zero back-and-forth owned by a human; escalation re-offers fresh
+times after 48h of silence.
+
+**Interview kits (Greenhouse's lesson, lite).** Every non-completed interview shows a
+deterministic kit: the role's required criteria split round-robin across the panel so
+each interviewer measures something specific, plus the candidate's primary concern
+assigned as an explicit probe. The panel measures the same things on purpose — and the
+scorecard consensus strip (iteration 2) closes that loop on the way out.
