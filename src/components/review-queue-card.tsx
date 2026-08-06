@@ -82,31 +82,34 @@ export function ReviewQueueCard({
                   key={it.data.applicationId}
                   className="flex items-center gap-1.5 rounded-md border border-border px-2 py-1.5"
                 >
-                  {list.length > 1 && (
-                    <div className="flex shrink-0 flex-col items-center">
-                      <button
-                        type="button"
-                        aria-label={`Move ${it.candidateName} up`}
-                        disabled={pending || i === 0}
-                        onClick={() => move(it.data.applicationId, "up")}
-                        className="rounded p-px text-muted-foreground hover:text-foreground disabled:opacity-30"
-                      >
-                        <ChevronUp className="size-3.5" />
-                      </button>
-                      <span className="text-[10px] font-semibold tabular-nums text-muted-foreground">
-                        {i + 1}
-                      </span>
-                      <button
-                        type="button"
-                        aria-label={`Move ${it.candidateName} down`}
-                        disabled={pending || i === list.length - 1}
-                        onClick={() => move(it.data.applicationId, "down")}
-                        className="rounded p-px text-muted-foreground hover:text-foreground disabled:opacity-30"
-                      >
-                        <ChevronDown className="size-3.5" />
-                      </button>
-                    </div>
-                  )}
+                  {/* Fixed-width slot whether or not arrows render, so names align across groups. */}
+                  <div className="flex w-4 shrink-0 flex-col items-center">
+                    {list.length > 1 && (
+                      <>
+                        <button
+                          type="button"
+                          aria-label={`Move ${it.candidateName} up`}
+                          disabled={pending || i === 0}
+                          onClick={() => move(it.data.applicationId, "up")}
+                          className="rounded p-px text-muted-foreground hover:text-foreground disabled:opacity-30"
+                        >
+                          <ChevronUp className="size-3.5" />
+                        </button>
+                        <span className="text-[10px] font-semibold tabular-nums text-muted-foreground">
+                          {i + 1}
+                        </span>
+                        <button
+                          type="button"
+                          aria-label={`Move ${it.candidateName} down`}
+                          disabled={pending || i === list.length - 1}
+                          onClick={() => move(it.data.applicationId, "down")}
+                          className="rounded p-px text-muted-foreground hover:text-foreground disabled:opacity-30"
+                        >
+                          <ChevronDown className="size-3.5" />
+                        </button>
+                      </>
+                    )}
+                  </div>
                   <div className="min-w-0 flex-1">
                     <Link
                       href={`/candidates/${it.candidateId}`}

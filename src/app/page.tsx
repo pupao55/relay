@@ -15,6 +15,7 @@ import type { HmReviewData } from "@/components/hm-review-sheet";
 import { ReviewQueueCard, type ReviewQueueItem } from "@/components/review-queue-card";
 import { RunAgentButton } from "@/components/run-agent-button";
 import { ALWAYS_APPROVAL_ACTION_TYPES, type ActionType } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -366,18 +367,26 @@ export default async function CommandCenterPage() {
                   <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                     Waiting on replies
                   </div>
-                  <ul className="mt-1.5 space-y-1.5">
+                  <ul className="mt-1.5 space-y-1">
                     {waitingActions.map((w) => {
                       const d = dueLabel(w.dueAt, now);
                       return (
-                        <li key={w.id} className="text-xs leading-snug">
-                          <span className="font-medium">{w.recipient!.name}</span>
-                          <span className="text-muted-foreground">
-                            {" "}
-                            · re {w.application.candidate.name.split(" ")[0]} ·{" "}
-                            <span className={d.overdue ? "font-medium text-red-600 dark:text-red-400" : ""}>
-                              {d.overdue ? d.label : `reply due ${d.label}`}
-                            </span>
+                        <li key={w.id} className="flex items-baseline gap-2 text-xs leading-snug">
+                          <span className="w-24 shrink-0 truncate font-medium">
+                            {w.recipient!.name}
+                          </span>
+                          <span className="min-w-0 flex-1 truncate text-muted-foreground">
+                            re {w.application.candidate.name.split(" ")[0]}
+                          </span>
+                          <span
+                            className={cn(
+                              "shrink-0 tabular-nums",
+                              d.overdue
+                                ? "font-medium text-red-600 dark:text-red-400"
+                                : "text-muted-foreground"
+                            )}
+                          >
+                            {d.label}
                           </span>
                         </li>
                       );

@@ -212,6 +212,7 @@ export function AttentionList({
                           expanded && "bg-muted/30"
                         )}
                       >
+                        {/* Fixed column widths so rows align vertically like a table. */}
                         <span
                           className={cn(
                             "size-1.5 shrink-0 rounded-full",
@@ -222,28 +223,32 @@ export function AttentionList({
                         <Link
                           href={`/candidates/${it.candidateId}`}
                           onClick={(e) => e.stopPropagation()}
-                          className="shrink-0 text-[13px] font-semibold hover:underline"
+                          className="w-32 shrink-0 truncate text-[13px] font-semibold hover:underline"
+                          title={it.candidateName}
                         >
                           {it.candidateName}
                         </Link>
-                        <span className="hidden shrink-0 text-[11px] text-muted-foreground sm:inline">
+                        <span
+                          className="hidden w-44 shrink-0 truncate text-[11px] text-muted-foreground lg:inline"
+                          title={it.roleTitle}
+                        >
                           {it.roleTitle}
                         </span>
                         <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
                           {it.blocker ?? it.actionTitle}
+                          {alsoQueued.length > 0 && (
+                            <span className="ml-1.5 rounded-full bg-muted px-1.5 text-[10px] tabular-nums">
+                              +{alsoQueued.length}
+                            </span>
+                          )}
                         </span>
-                        {alsoQueued.length > 0 && (
-                          <span className="shrink-0 rounded-full bg-muted px-1.5 text-[10px] tabular-nums text-muted-foreground">
-                            +{alsoQueued.length}
-                          </span>
-                        )}
-                        <span className="hidden shrink-0 items-center gap-1 text-[11px] text-muted-foreground md:flex">
-                          <UserRound className="size-3" />
+                        <span className="hidden w-16 shrink-0 items-center gap-1 truncate text-[11px] text-muted-foreground md:flex">
+                          <UserRound className="size-3 shrink-0" />
                           {it.ownerName.split(" ")[0]}
                         </span>
                         <span
                           className={cn(
-                            "shrink-0 text-[11px] tabular-nums",
+                            "w-16 shrink-0 text-right text-[11px] tabular-nums",
                             it.overdue
                               ? "font-medium text-red-600 dark:text-red-400"
                               : "text-muted-foreground"
